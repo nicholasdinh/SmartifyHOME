@@ -39,7 +39,6 @@ class Worker:
         while True:
             try:
                 work = self.receiver.recv()
-                
                 # This snippet is only used for debug purposes when testing sending data back to server
                 if data_count % 2 == 0:
                     message = "message to server from device " + str(data_count)
@@ -74,8 +73,9 @@ class Worker:
 
         print(f"There are {self.data_queue.qsize()} items in the queue.")
         if self.data_queue.qsize() > 0:
-            data = self.data_queue.get()
-            print(f"Message on top of queue was {data}")
+            raw_data = self.data_queue.get().decode("utf-8")[2:]
+            data = json.loads(raw_data)
+            print(f"Message on top of queue was {str(data)}")
         
 
     def main_loop(self):

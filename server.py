@@ -91,15 +91,18 @@ class FogServer:
             Invoked by adding the '-d' flag when executing this script.
         """
         self.receive_thread.start()
-        device_id = "1"
         while True:
             self.check_for_received()
+            device_id = input("Enter device id\n")
             command = input("Enter debug message \n")
             if command.lower() == 'q':
                 break
-            work_message = device_id + " has a debug message of " + command
-            self.publish_socket.send_string(work_message)
-            print("published " + work_message)
+            message_dict = {'message': command}
+            serialized_message = device_id + " " + json.dumps(message_dict)
+            self.publish_socket.send_string(serialized_message)
+
+
+            print("published " + serialized_message)
 
             
     def check_for_received(self):

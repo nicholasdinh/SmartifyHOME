@@ -1,4 +1,5 @@
 import json
+import pickle
 import queue
 import random
 import sys
@@ -33,9 +34,6 @@ class FogServer(tk.Frame):
         # The socket that data is published to the forwarder through.
         self.publish_socket = self.context.socket(zmq.PUB)
         self.publish_socket.connect(self.ip + self.publish_port)
-
-
-        self.rec_topic_id = "2"
 
         # The socket that receives data from the forwarder.
         self.receiver_socket = self.context.socket(zmq.SUB)
@@ -126,6 +124,9 @@ class FogServer(tk.Frame):
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
             self.available_id = data["available_id"]
             self.profiles = data["profiles"]
+            self.rec_topic_id = data["server_receive_topic"]
+            self.publish_temp_pi_topic_id = data["temperature_pi_topic"]
+            self.publish_recognition_pi_topic_id = data["face_recognition_pi_topic"]
         self.update_tree_on_load()
 
     def dump_to_config_file(self):
@@ -166,6 +167,7 @@ class FogServer(tk.Frame):
         while True:
             try:
                 data = self.receiver_socket.recv()
+                print(data.decode("utf-8"))
                 self.queue.put(data)
             except zmq.Again:
                 continue
@@ -205,7 +207,6 @@ class FogServer(tk.Frame):
             which person has been detected.
         """
         self.receive_thread.start()
-        device_id = "1"
         while True:
             detected = input("Who was detected? ")
             if detected.lower() == 'q':
@@ -214,14 +215,27 @@ class FogServer(tk.Frame):
                 'detected': detected,
                 'profiles': self.profiles
             }
-            serialized_message = device_id + " " + json.dumps(temperature_message)
+            serialized_message = self.publish_temp_pi_topic_id + " " + json.dumps(temperature_message)
             print(serialized_message)
             self.publish_socket.send_string(serialized_message)
             
+    def debug_recognition(self):
+        """
+            Debug face recognition subscriber. We will be sending face encodings.
+        """
+        self.receive_thread.start()
+        while True:
+            pause = input("Press enter to send encodings ")
+            if(pause.lower() == 'q'):
+                break
+            encodings = pickle.load(open("encodings.pickle","rb"))
+            serialized_message = self.publish_recognition_pi_topic_id + " " + json.dumps(encodings)
+            self.publish_socket.send_string(serialized_message)
+
+
     def check_for_received(self):
             print("Checking for any received messages...")
             self.check_queue()
-
 
 
 if __name__ == '__main__':
@@ -231,6 +245,8 @@ if __name__ == '__main__':
         server.debug_producer()
     elif len(sys.argv) > 1 and sys.argv[1].lower() == '-t':
         server.debug_temp()
+    elif len(sys.argv) > 1 and sys.argv[1].lower() == '-f':
+        server.debug_recognition()
     else:
         server.producer()
     server.mainloop()

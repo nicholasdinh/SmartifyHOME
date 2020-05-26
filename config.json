@@ -1,16 +1,29 @@
 {
-    "available_id": 1,
+    "available_id": 9,
+    "temperature_pi_topic": "1",
+    "server_receive_topic": "2",
+    "face_recognition_pi_topic": "3",
     "forwarder_ip": "128.195.78.124",
     "profiles": [
         {
-            "id": 1,
-            "name": "ryan",
-            "temperature_preference": "65"
+            "id": "5",
+            "name": "neftali",
+            "temperature_preference": "200"
         },
         {
-            "id": 2,
+            "id": "6",
+            "name": "ryan",
+            "temperature_preference": "75"
+        },
+        {
+            "id": "7",
             "name": "damian",
-            "temperature_preference": "85"
+            "temperature_preference": "80"
+        },
+        {
+            "id": "8",
+            "name": "michael",
+            "temperature_preference": "300"
         }
     ],
     "publisher_port": "5559",

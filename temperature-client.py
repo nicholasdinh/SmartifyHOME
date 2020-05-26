@@ -115,16 +115,14 @@ class TemperatureDevice:
             # send updates to fog
 
             # This only happens before someone is detected in the room.
-            if self.temp_threshold == None:
-                continue
-
-            recorded_temp = self.measure_temp()
-            self.print_temp(recorded_temp)       
-            if recorded_temp > self.temp_threshold:
-                print("FAN STARTED")
-                self.fan.on()
-            else:
-                self.fan.off()
+            if self.temp_threshold != None:
+                recorded_temp = self.measure_temp()
+                self.print_temp(recorded_temp)       
+                if recorded_temp > self.temp_threshold:
+                    print("FAN STARTED")
+                    self.fan.on()
+                else:
+                    self.fan.off()
             time.sleep(3.0)
 
 

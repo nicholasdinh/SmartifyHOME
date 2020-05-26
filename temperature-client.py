@@ -18,8 +18,12 @@ class TemperatureDevice:
     def __init__(self):
         # Temperature stuff
         self.profiles = dict()
+        self.detected_id = None
+
+        # For future use
         self.room_id = None
         self.primary_profile = None
+
         self.temp_threshold = None
         self.fan_gpio_pin = 4
         self.fan = OutputDevice(self.fan_gpio_pin)
@@ -88,10 +92,11 @@ class TemperatureDevice:
 
             self.profiles = data["profiles"]
             detected = data["detected"]
-
+            self.detected_id = detected
 
             for profile in self.profiles:
                 if profile['id'] == detected:
+                    print(f"{profile['name']} was detected!")
                     self.temp_threshold = int(profile["temperature_preference"])
 
             print(f"Message on top of queue was {str(data)}")
@@ -119,9 +124,10 @@ class TemperatureDevice:
                 recorded_temp = self.measure_temp()
                 self.print_temp(recorded_temp)       
                 if recorded_temp > self.temp_threshold:
-                    print("FAN STARTED")
+                    print("FAN RUNNING")
                     self.fan.on()
                 else:
+                    print("FAN STOPPING")
                     self.fan.off()
             time.sleep(3.0)
 
@@ -134,7 +140,7 @@ class TemperatureDevice:
         return temp_F
 
     def print_temp(self, x):
-	    print("Temperature: " + str(x) + "'C")
+	    print("Temperature: " + str(x) + "'F")
 
     # def receive_updates(self):
     #     # receive data from facerec pi

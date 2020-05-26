@@ -100,7 +100,7 @@ class FogServer(tk.Frame):
         new_profile = dict()
         new_profile['name'] = username
         new_profile['temperature_preference'] = temp
-        new_profile['id'] = self.available_id
+        new_profile['id'] = str(self.available_id)
         self.available_id +=1
         self.profiles.append(new_profile)
         self.treev.insert('', 'end', text=username, values=(new_profile['id'],username,temp))
@@ -111,7 +111,8 @@ class FogServer(tk.Frame):
 
     def update_tree_on_load(self):
         for profile in self.profiles:
-            self.treev.insert('','end', text=profile['name'], values=(profile['name'], profile['temperature_preference']))
+
+            self.treev.insert('','end', text=profile['name'], values=(profile['id'], profile['name'], profile['temperature_preference']))
 
     def read_config_file(self):
         """
@@ -199,18 +200,23 @@ class FogServer(tk.Frame):
             print("published " + serialized_message)
 
     def debug_temp(self):
+        """
+            Debug temperature sensing subscriber. We can send to the sensing pi
+            which person has been detected.
+        """
         self.receive_thread.start()
         device_id = "1"
-        detected = input("Who was detected? ")
-        if detected.lower() == 'q':
-            return
-        temperature_message = {
-            'detected': detected,
-            'profiles': self.profiles
-        }
-        serialized_message = device_id + " " + json.dumps(temperature_message)
-        print(serialized_message)
-        self.publish_socket.send_string(serialized_message)
+        while True:
+            detected = input("Who was detected? ")
+            if detected.lower() == 'q':
+                break
+            temperature_message = {
+                'detected': detected,
+                'profiles': self.profiles
+            }
+            serialized_message = device_id + " " + json.dumps(temperature_message)
+            print(serialized_message)
+            self.publish_socket.send_string(serialized_message)
             
     def check_for_received(self):
             print("Checking for any received messages...")

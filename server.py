@@ -81,10 +81,11 @@ class FogServer(tk.Frame):
         self.topFrame.grid_columnconfigure(2,weight=1)
 
     def create_tree_view(self):
-        self.treev = ttk.Treeview(self.master, columns = ("id", "Name", "Preference"), show="headings")
+        self.treev = ttk.Treeview(self.master, columns = ("id", "Name", "Preference"), show="headings", selectmode="browse")
         self.treev.heading("id", text="User ID")
         self.treev.heading("Name", text="Name")
         self.treev.heading("Preference", text="Preference")
+        self.treev.bind("<Double-1>", self.on_tree_view_double_click)
         self.treev.grid(row=1, column=0, sticky="nsew")
 
     def addUserOnClick(self):
@@ -105,12 +106,82 @@ class FogServer(tk.Frame):
         self.dump_to_config_file()
 
 
-
+    def on_tree_view_double_click(self, event):
+        item = self.treev.selection()[0]
+        clicked_id, clicked_name, clicked_preference = self.treev.item(item, "values")
+        self.edit_user_window(clicked_id, clicked_name, clicked_preference)
 
     def update_tree_on_load(self):
         for profile in self.profiles:
-
             self.treev.insert('','end', text=profile['name'], values=(profile['id'], profile['name'], profile['temperature_preference']))
+
+    def edit_user_window(self, id, name, preference):
+        window = tk.Toplevel(self.master)
+
+        # Frame of entire window
+        edit_user_frame = tk.Frame(master = window)
+        edit_user_frame.grid(row=0, sticky="nsew")
+        edit_user_frame.grid_rowconfigure(0, weight=1)
+        edit_user_frame.grid_rowconfigure(1, weight=1)
+        edit_user_frame.grid_rowconfigure(2, weight=1)
+        edit_user_frame.grid_columnconfigure(0, weight=1)
+
+        # First row, label in window
+        tk.Label(edit_user_frame, text="Editing " + name).grid(row=0, padx=5, pady=5, sticky="nsew")
+        
+        
+        # Second row, labelframe of edit options
+        edit_label_frame = tk.LabelFrame(master=edit_user_frame, text="Edit Options")
+        edit_label_frame.grid(row=1, padx=5, pady=5, sticky="nsew")
+        edit_label_frame.grid_rowconfigure(0,weight=1)
+        edit_label_frame.grid_rowconfigure(1,weight=1)
+        edit_label_frame.grid_rowconfigure(2,weight=1)
+        edit_label_frame.grid_columnconfigure(0, weight=1)
+        edit_label_frame.grid_columnconfigure(1, weight=1)
+        edit_label_frame.grid_columnconfigure(2, weight=1)
+
+        tk.Label(edit_label_frame, text="New temperature preference").grid(row=1, column=0, padx=5, sticky="nsew")
+        new_preference_entry = tk.Entry(master=edit_label_frame)
+        new_preference_entry.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
+
+        confirm_edit_button = tk.Button(edit_label_frame, text="Enter", command=lambda: self.update_user(id, new_preference_entry.get(), window))
+        confirm_edit_button.grid(row=1, column=2, padx=5, pady=5, sticky="nsew")
+
+        delete_user_button = tk.Button(edit_label_frame, text="Delete User", command=lambda: self.delete_user(id, window))
+        delete_user_button.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Third row, cancel button
+        cancel_button = tk.Button(edit_user_frame, text="Cancel", command=lambda: self.close_edit_window(window))
+        cancel_button.grid(row=2, padx=5, pady=5, sticky="nsew")
+
+        window.grid_rowconfigure(0, weight=1)
+        window.grid_columnconfigure(0, weight=1)
+
+    def update_user(self, user_id, new_preference, toplevel):
+        for profile in self.profiles:
+            if profile["id"] == user_id:
+                profile["temperature_preference"] = new_preference
+    
+        self.reset_tree_and_close_window(toplevel)
+
+    def delete_user(self, user_id, toplevel):
+        for i, profile in enumerate(self.profiles):
+            if profile["id"] == user_id:
+                del self.profiles[i]
+        self.reset_tree_and_close_window(toplevel)
+
+    def close_edit_window(self, toplevel):
+        toplevel.destroy()
+        toplevel.update()
+
+    def reset_tree_and_close_window(self, toplevel):
+        self.dump_to_config_file()
+
+        # send message to all temperature pi's with new profiles
+        self.send_temperature_client_message(-1)
+        self.treev.delete(*self.treev.get_children())
+        self.update_tree_on_load()
+        self.close_edit_window(toplevel)
 
     def read_config_file(self):
         """
@@ -134,6 +205,9 @@ class FogServer(tk.Frame):
             "subscriber_port": self.receiver_port,
             "publisher_port": self.publish_port,
             "forwarder_ip": self.ip[6:-1],
+            "server_receive_topic": self.rec_topic_id,
+            "temperature_pi_topic": self.publish_temp_pi_topic_id,
+            "face_recognition_pi_topic": self.publish_recognition_pi_topic_id,
             "available_id": self.available_id,
             "profiles": self.profiles
         }
@@ -182,6 +256,15 @@ class FogServer(tk.Frame):
         else:
             print("Server's receive queue was empty.")
 
+    def send_temperature_client_message(self, detected):
+        temperature_message = {
+            'detected': detected,
+            'profiles': self.profiles
+        }
+        serialized_message = self.publish_temp_pi_topic_id + " " + json.dumps(temperature_message)
+        print(serialized_message)
+        self.publish_socket.send_string(serialized_message)
+
     def debug_producer(self):
         """
             Debug producer, allows us to send debug messages to a device.
@@ -211,13 +294,7 @@ class FogServer(tk.Frame):
             detected = input("Who was detected? ")
             if detected.lower() == 'q':
                 break
-            temperature_message = {
-                'detected': detected,
-                'profiles': self.profiles
-            }
-            serialized_message = self.publish_temp_pi_topic_id + " " + json.dumps(temperature_message)
-            print(serialized_message)
-            self.publish_socket.send_string(serialized_message)
+            self.send_temperature_client_message(detected)
             
     def debug_recognition(self):
         """

@@ -113,8 +113,13 @@ class TemperatureDevice:
             # check for updates from fog
             self.check_queue()
             # send updates to fog
+
+            # This only happens before someone is detected in the room.
+            if self.temp_threshold == None:
+                continue
+
             recorded_temp = self.measure_temp()
-            self.print_temp(recorded_temp)            
+            self.print_temp(recorded_temp)       
             if recorded_temp > self.temp_threshold:
                 print("FAN STARTED")
                 self.fan.on()
@@ -159,5 +164,5 @@ class TemperatureDevice:
         pass
 
 if __name__ == '__main__':
-    worker = Worker()
+    worker = TemperatureDevice()
     worker.run()

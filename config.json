@@ -1,5 +1,18 @@
 {
-    "forwarder_ip": "128.195.69.186",
+    "available_id": 1,
+    "forwarder_ip": "128.195.78.124",
+    "profiles": [
+        {
+            "id": 1,
+            "name": "ryan",
+            "temperature_preference": "65"
+        },
+        {
+            "id": 2,
+            "name": "damian",
+            "temperature_preference": "85"
+        }
+    ],
     "publisher_port": "5559",
     "subscriber_port": "5560"
 }

@@ -73,6 +73,8 @@ class TemperatureDevice:
             self.receiver_port = data["subscriber_port"]
             self.producer_port = data["publisher_port"]
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
+            self.profiles = data["profiles"]
+
 
     def check_queue(self):
         """
@@ -83,6 +85,15 @@ class TemperatureDevice:
         if self.data_queue.qsize() > 0:
             raw_data = self.data_queue.get().decode("utf-8")[2:]
             data = json.loads(raw_data)
+
+            self.profiles = data["profiles"]
+            detected = data["detected"]
+
+
+            for profile in self.profiles:
+                if profile['id'] == detected:
+                    self.temp_threshold = int(profile["temperature_preference"])
+
             print(f"Message on top of queue was {str(data)}")
 
 

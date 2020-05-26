@@ -157,3 +157,7 @@ class TemperatureDevice:
         # send updated data to fog
         # data: detected_people
         pass
+
+if __name__ == '__main__':
+    worker = Worker()
+    worker.run()

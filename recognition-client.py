@@ -3,6 +3,7 @@ import time
 import zmq
 import random
 import threading
+import pickle
 import queue
 import json
 import os
@@ -47,7 +48,8 @@ class RecognitionDevice:
         data_count = 1
         while True:
             try:
-                work = self.receiver.recv()
+                [topic,msg] = self.receiver.recv_multipart()
+                work = pickle.loads(msg)
                 # This snippet is only used for debug purposes when testing sending data back to server
                 if data_count % 2 == 0:
                     message = "message to server from device " + str(data_count)
@@ -74,9 +76,8 @@ class RecognitionDevice:
         print(f"There are {self.data_queue.qsize()} items in the queue.")
         if self.data_queue.qsize() > 0:
             # Do something with data we received
-            raw_data = self.data_queue.get().decode("utf-8")[2:]
-            data = json.loads(raw_data)
-            print(f"Message on top of queue was {str(data)}")
+            encodings = self.data_queue.get()
+            print(f"Message on top of queue was {str(encodings)}")
     
     def run(self):
         self.receiver_thread.start()

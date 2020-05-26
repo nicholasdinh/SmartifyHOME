@@ -229,8 +229,8 @@ class FogServer(tk.Frame):
             if(pause.lower() == 'q'):
                 break
             encodings = pickle.load(open("encodings.pickle","rb"))
-            serialized_message = self.publish_recognition_pi_topic_id + " " + json.dumps(encodings)
-            self.publish_socket.send_string(serialized_message)
+            multipart_message = [str.encode(self.publish_recognition_pi_topic_id), pickle.dumps(encodings)]
+            self.publish_socket.send_multipart(multipart_message)
 
 
     def check_for_received(self):

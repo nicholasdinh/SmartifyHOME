@@ -240,6 +240,7 @@ class FogServer(tk.Frame):
         """
         while True:
             try:
+                print("Trying to receive!")
                 data = self.receiver_socket.recv()
                 print(data.decode("utf-8"))
                 self.queue.put(data)
@@ -302,6 +303,7 @@ class FogServer(tk.Frame):
         """
         self.receive_thread.start()
         while True:
+            self.check_for_received()
             pause = input("Press enter to send encodings ")
             if(pause.lower() == 'q'):
                 break
@@ -309,6 +311,13 @@ class FogServer(tk.Frame):
             multipart_message = [str.encode(self.publish_recognition_pi_topic_id), pickle.dumps(encodings)]
             self.publish_socket.send_multipart(multipart_message)
 
+    def debug_gui(self):
+        self.receive_thread.start()
+        self.send_temperature_client_message(-1)
+        while True:
+            pause = input("Press q to quit")
+            if(pause.lower() == 'q'):
+                break
 
     def check_for_received(self):
             print("Checking for any received messages...")
@@ -324,6 +333,8 @@ if __name__ == '__main__':
         server.debug_temp()
     elif len(sys.argv) > 1 and sys.argv[1].lower() == '-f':
         server.debug_recognition()
+    elif len(sys.argv) > 1 and sys.argv[1].lower() == '-g':
+        server.debug_gui()
     else:
         server.producer()
     server.mainloop()

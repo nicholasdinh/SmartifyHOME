@@ -34,6 +34,7 @@ class TemperatureDevice:
         self.read_config_file()
         self.data_queue = queue.Queue()
         self.rec_topic_id = "1"
+        self.fan_status = False
 
         self.context = zmq.Context()
         self.receiver = self.context.socket(zmq.SUB)
@@ -49,17 +50,10 @@ class TemperatureDevice:
         self.data_queue = queue.Queue()
         
     def consumer(self):
-        data_count = 1
         while True:
             try:
                 work = self.receiver.recv()
-                # This snippet is only used for debug purposes when testing sending data back to server
-                if data_count % 2 == 0:
-                    message = "message to server from device " + str(data_count)
-                    self.send_message_to_fog(self.producer_topic, message)
-
                 self.data_queue.put(work)
-                data_count += 1
             except zmq.Again:
                 continue
 
@@ -127,12 +121,20 @@ class TemperatureDevice:
                 self.print_temp(recorded_temp)       
                 if recorded_temp > self.temp_threshold:
                     print("FAN RUNNING")
+                    self.fan_status = True
                     self.fan.on()
                     self.fan_light.on()
                 else:
                     print("FAN STOPPING")
+                    self.fan_status = False
                     self.fan.off()
                     self.fan_light.off()
+                
+                temp_message = {
+                    "fan_status": self.fan_status,
+                    "temperature": recorded_temp
+                }
+                self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
             time.sleep(3.0)
 
 

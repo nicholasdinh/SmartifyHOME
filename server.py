@@ -109,7 +109,7 @@ class FogServer(tk.Frame):
         new_profile['temperature_preference'] = temp
         new_profile['id'] = str(self.available_id)
         self.available_id +=1
-        self.profiles.append(new_profile)
+        self.profiles[str(self.available_id)] = new_profile
         self.treev.insert('', 'end', text=username, values=(new_profile['id'],username,temp))
         self.dump_to_config_file()
 
@@ -120,20 +120,15 @@ class FogServer(tk.Frame):
         self.edit_user_window(clicked_id, clicked_name, clicked_preference)
 
     def update_tree_on_load(self):
-        for profile in self.profiles:
+        for profile_id in self.profiles:
+            profile = self.profiles[profile_id]
             self.treev.insert('','end', text=profile['name'], values=(profile['id'], profile['name'], profile['temperature_preference']))
         self.update_temperature_tree()
-
-    def find_detected_name(self, id):
-        for profile in self.profiles:
-            if profile["id"] == id:
-                return profile["name"]
-        return "Unknown"
 
     def update_temperature_tree(self):
         for room_id in self.rooms:
             room = self.rooms[room_id]
-            detected_name = self.find_detected_name(room["detected_id"])
+            detected_name = self.profiles[room["detected_id"]]["name"]
             self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status'], detected_name))
 
     def edit_user_window(self, id, name, preference):
@@ -186,9 +181,9 @@ class FogServer(tk.Frame):
         self.reset_tree_and_close_window(toplevel)
 
     def delete_user(self, user_id, toplevel):
-        for i, profile in enumerate(self.profiles):
-            if profile["id"] == user_id:
-                del self.profiles[i]
+        for profile_id in self.profiles:
+            if profile_id == user_id:
+                self.profiles.pop(profile_id)
         self.reset_tree_and_close_window(toplevel)
 
     def close_edit_window(self, toplevel):
@@ -283,6 +278,12 @@ class FogServer(tk.Frame):
         serialized_message = self.publish_temp_pi_topic_id + " " + json.dumps(temperature_message)
         self.publish_socket.send_string(serialized_message)
 
+    def send_recognition_message(self):
+        encodings = pickle.load(open("encodings.pickle","rb"))
+        encodings["profiles"] = self.profiles
+        multipart_message = [str.encode(self.publish_recognition_pi_topic_id), pickle.dumps(encodings)]
+        self.publish_socket.send_multipart(multipart_message)
+
     def check_for_received(self):
             print("Checking for any received messages...")
             self.check_queue()
@@ -297,8 +298,13 @@ class FogServer(tk.Frame):
         self.send_temperature_client_message(str(random_id))
         self.after(500, self.debug_updater)
 
+    def start(self):
+        self.receive_thread.start()
+        self.send_recognition_message()
+        
+
 if __name__ == '__main__':
     root = tk.Tk()
     server = FogServer(master=root)
-    server.receive_thread.start()
+    server.start()
     server.mainloop()

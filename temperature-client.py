@@ -74,6 +74,7 @@ class TemperatureDevice:
             self.producer_port = data["publisher_port"]
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
             self.profiles = data["profiles"]
+            self.room_id = data["room_id"]
 
 
     def check_queue(self):
@@ -138,7 +139,8 @@ class TemperatureDevice:
                 
                 temp_message = {
                     "fan_status": self.fan_status,
-                    "temperature": recorded_temp
+                    "temperature": recorded_temp,
+                    "room_id": self.room_id
                 }
                 self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
             time.sleep(3.0)

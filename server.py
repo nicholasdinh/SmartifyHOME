@@ -88,6 +88,13 @@ class FogServer(tk.Frame):
         self.treev.bind("<Double-1>", self.on_tree_view_double_click)
         self.treev.grid(row=1, column=0, sticky="nsew")
 
+        self.room_treev = ttk.Treeview(self.master, columns= ("id", "Name", "Temperature", "Fan"), show="headings", selectmode="browse")
+        self.room_treev.heading("id", text="Room ID")
+        self.room_treev.heading("Name", text="Room Name")
+        self.room_treev.heading("Temperature", text="Temperature")
+        self.room_treev.heading("Fan", text="Fan Status")
+        self.room_treev.grid(row=2, column=0, sticky="nsew")
+
     def addUserOnClick(self):
         username = self.nameEntry.get()
         temp = self.tempEntry.get()
@@ -114,6 +121,9 @@ class FogServer(tk.Frame):
     def update_tree_on_load(self):
         for profile in self.profiles:
             self.treev.insert('','end', text=profile['name'], values=(profile['id'], profile['name'], profile['temperature_preference']))
+        for room_id in self.rooms:
+            room = self.rooms[room_id]
+            self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status']))
 
     def edit_user_window(self, id, name, preference):
         window = tk.Toplevel(self.master)
@@ -180,6 +190,7 @@ class FogServer(tk.Frame):
         # send message to all temperature pi's with new profiles
         self.send_temperature_client_message(-1)
         self.treev.delete(*self.treev.get_children())
+        self.room_treev.delete(*self.room_treev.get_children())
         self.update_tree_on_load()
         self.close_edit_window(toplevel)
 
@@ -198,6 +209,7 @@ class FogServer(tk.Frame):
             self.rec_topic_id = data["server_receive_topic"]
             self.publish_temp_pi_topic_id = data["temperature_pi_topic"]
             self.publish_recognition_pi_topic_id = data["face_recognition_pi_topic"]
+            self.rooms = data["rooms"]
         self.update_tree_on_load()
 
     def dump_to_config_file(self):
@@ -209,7 +221,8 @@ class FogServer(tk.Frame):
             "temperature_pi_topic": self.publish_temp_pi_topic_id,
             "face_recognition_pi_topic": self.publish_recognition_pi_topic_id,
             "available_id": self.available_id,
-            "profiles": self.profiles
+            "profiles": self.profiles,
+            "rooms": self.rooms
         }
         with open("./config.json", "w") as config_file:
             json.dump(data_to_dump, config_file, indent=4, sort_keys=True)
@@ -253,7 +266,9 @@ class FogServer(tk.Frame):
         """
         if self.queue.qsize() > 0:
             data = self.queue.get()
-            print(f"Message on top of queue was {data}")
+            room_id = data["room_id"]
+            self.rooms[room_id]["temperature"] = data["temperature"]
+            self.rooms[room_id]["fan_status"] = data["fan_status"]
         else:
             print("Server's receive queue was empty.")
 

@@ -45,7 +45,7 @@ class FogServer(tk.Frame):
 
         # The thread that checks receiver_socket for any new messages
         self.receive_thread = threading.Thread(target=self.receiver)
-
+        self.updater()
 
     def create_top_frame(self):
         self.topFrame = tk.Frame(master=self.master)
@@ -88,6 +88,14 @@ class FogServer(tk.Frame):
         self.treev.bind("<Double-1>", self.on_tree_view_double_click)
         self.treev.grid(row=1, column=0, sticky="nsew")
 
+        self.room_treev = ttk.Treeview(self.master, columns= ("id", "Name", "Temperature", "Fan", "Detected"), show="headings", selectmode="browse")
+        self.room_treev.heading("id", text="Room ID")
+        self.room_treev.heading("Name", text="Room Name")
+        self.room_treev.heading("Detected", text="Detected User")
+        self.room_treev.heading("Temperature", text="Temperature")
+        self.room_treev.heading("Fan", text="Fan Status")
+        self.room_treev.grid(row=2, column=0, sticky="nsew")
+
     def addUserOnClick(self):
         username = self.nameEntry.get()
         temp = self.tempEntry.get()
@@ -101,7 +109,7 @@ class FogServer(tk.Frame):
         new_profile['temperature_preference'] = temp
         new_profile['id'] = str(self.available_id)
         self.available_id +=1
-        self.profiles.append(new_profile)
+        self.profiles[str(self.available_id)] = new_profile
         self.treev.insert('', 'end', text=username, values=(new_profile['id'],username,temp))
         self.dump_to_config_file()
 
@@ -112,8 +120,16 @@ class FogServer(tk.Frame):
         self.edit_user_window(clicked_id, clicked_name, clicked_preference)
 
     def update_tree_on_load(self):
-        for profile in self.profiles:
+        for profile_id in self.profiles:
+            profile = self.profiles[profile_id]
             self.treev.insert('','end', text=profile['name'], values=(profile['id'], profile['name'], profile['temperature_preference']))
+        self.update_temperature_tree()
+
+    def update_temperature_tree(self):
+        for room_id in self.rooms:
+            room = self.rooms[room_id]
+            detected_name = self.profiles[room["detected_id"]]["name"]
+            self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status'], detected_name))
 
     def edit_user_window(self, id, name, preference):
         window = tk.Toplevel(self.master)
@@ -165,9 +181,9 @@ class FogServer(tk.Frame):
         self.reset_tree_and_close_window(toplevel)
 
     def delete_user(self, user_id, toplevel):
-        for i, profile in enumerate(self.profiles):
-            if profile["id"] == user_id:
-                del self.profiles[i]
+        for profile_id in self.profiles:
+            if profile_id == user_id:
+                self.profiles.pop(profile_id)
         self.reset_tree_and_close_window(toplevel)
 
     def close_edit_window(self, toplevel):
@@ -180,6 +196,7 @@ class FogServer(tk.Frame):
         # send message to all temperature pi's with new profiles
         self.send_temperature_client_message(-1)
         self.treev.delete(*self.treev.get_children())
+        self.room_treev.delete(*self.room_treev.get_children())
         self.update_tree_on_load()
         self.close_edit_window(toplevel)
 
@@ -198,6 +215,8 @@ class FogServer(tk.Frame):
             self.rec_topic_id = data["server_receive_topic"]
             self.publish_temp_pi_topic_id = data["temperature_pi_topic"]
             self.publish_recognition_pi_topic_id = data["face_recognition_pi_topic"]
+            self.rooms = data["rooms"]
+            self.room_id = data["room_id"]
         self.update_tree_on_load()
 
     def dump_to_config_file(self):
@@ -209,30 +228,12 @@ class FogServer(tk.Frame):
             "temperature_pi_topic": self.publish_temp_pi_topic_id,
             "face_recognition_pi_topic": self.publish_recognition_pi_topic_id,
             "available_id": self.available_id,
-            "profiles": self.profiles
+            "profiles": self.profiles,
+            "rooms": self.rooms,
+            "room_id": self.room_id
         }
         with open("./config.json", "w") as config_file:
             json.dump(data_to_dump, config_file, indent=4, sort_keys=True)
-            
-
-    def producer(self):
-        """
-            Main function of this class, this is where data is published to the devices.
-            For example:
-                User preferences are sent to the device maintaining temperature.
-        """
-        self.receive_thread.start()
-        publisher_id = random.randrange(0,9999)
-        time.sleep(1)
-        device_id = "1"
-
-        """
-            This is where we will need to send device specific data.
-        """
-
-        for num in range(20):
-            self.publish_socket.send_string(device_id + " has a message of " + str(num))
-            self.check_for_received()
 
     def receiver(self):
         """
@@ -240,10 +241,10 @@ class FogServer(tk.Frame):
         """
         while True:
             try:
-                print("Trying to receive!")
+                # print("Trying to receive!")
                 data = self.receiver_socket.recv()
-                print(data.decode("utf-8"))
-                self.queue.put(data)
+                # print(data.decode("utf-8"))
+                self.queue.put(data.decode("utf-8"))
             except zmq.Again:
                 continue
 
@@ -252,8 +253,20 @@ class FogServer(tk.Frame):
             Check if there is any data received by the devices waiting to be processed.
         """
         if self.queue.qsize() > 0:
-            data = self.queue.get()
-            print(f"Message on top of queue was {data}")
+            data = json.loads(self.queue.get()[2:])
+
+            if "is_recognition" in data:
+                detected_id = data["detected_id"]
+                self.send_temperature_client_message(detected_id)
+            else:
+                room_id = data["room_id"]
+                self.rooms[room_id]["temperature"] = data["temperature"]
+                self.rooms[room_id]["fan_status"] = data["fan_status"]
+                self.rooms[room_id]["detected_id"] = data["detected_id"]
+                self.room_treev.delete(*self.room_treev.get_children())
+                self.update_temperature_tree()
+                self.dump_to_config_file()
+            # print("New room " + self.rooms[room_id])
         else:
             print("Server's receive queue was empty.")
 
@@ -263,78 +276,35 @@ class FogServer(tk.Frame):
             'profiles': self.profiles
         }
         serialized_message = self.publish_temp_pi_topic_id + " " + json.dumps(temperature_message)
-        print(serialized_message)
         self.publish_socket.send_string(serialized_message)
 
-    def debug_producer(self):
-        """
-            Debug producer, allows us to send debug messages to a device.
-            Invoked by adding the '-d' flag when executing this script.
-        """
-        self.receive_thread.start()
-        while True:
-            self.check_for_received()
-            device_id = input("Enter device id\n")
-            command = input("Enter debug message \n")
-            if command.lower() == 'q':
-                break
-            message_dict = {'message': command}
-            serialized_message = device_id + " " + json.dumps(message_dict)
-            self.publish_socket.send_string(serialized_message)
-
-
-            print("published " + serialized_message)
-
-    def debug_temp(self):
-        """
-            Debug temperature sensing subscriber. We can send to the sensing pi
-            which person has been detected.
-        """
-        self.receive_thread.start()
-        while True:
-            detected = input("Who was detected? ")
-            if detected.lower() == 'q':
-                break
-            self.send_temperature_client_message(detected)
-            
-    def debug_recognition(self):
-        """
-            Debug face recognition subscriber. We will be sending face encodings.
-        """
-        self.receive_thread.start()
-        while True:
-            self.check_for_received()
-            pause = input("Press enter to send encodings ")
-            if(pause.lower() == 'q'):
-                break
-            encodings = pickle.load(open("encodings.pickle","rb"))
-            multipart_message = [str.encode(self.publish_recognition_pi_topic_id), pickle.dumps(encodings)]
-            self.publish_socket.send_multipart(multipart_message)
-
-    def debug_gui(self):
-        self.receive_thread.start()
-        self.send_temperature_client_message(-1)
-        while True:
-            pause = input("Press q to quit")
-            if(pause.lower() == 'q'):
-                break
+    def send_recognition_message(self):
+        encodings = pickle.load(open("encodings.pickle","rb"))
+        encodings["profiles"] = self.profiles
+        multipart_message = [str.encode(self.publish_recognition_pi_topic_id), pickle.dumps(encodings)]
+        self.publish_socket.send_multipart(multipart_message)
 
     def check_for_received(self):
             print("Checking for any received messages...")
             self.check_queue()
 
+    def updater(self):
+        self.check_for_received()
+        self.after(500, self.updater)
+
+    def debug_updater(self):
+        self.check_for_received()
+        random_id = random.randint(5,9)
+        self.send_temperature_client_message(str(random_id))
+        self.after(500, self.debug_updater)
+
+    def start(self):
+        self.receive_thread.start()
+        self.send_recognition_message()
+        
 
 if __name__ == '__main__':
     root = tk.Tk()
     server = FogServer(master=root)
-    if len(sys.argv) > 1 and sys.argv[1].lower() == '-d':
-        server.debug_producer()
-    elif len(sys.argv) > 1 and sys.argv[1].lower() == '-t':
-        server.debug_temp()
-    elif len(sys.argv) > 1 and sys.argv[1].lower() == '-f':
-        server.debug_recognition()
-    elif len(sys.argv) > 1 and sys.argv[1].lower() == '-g':
-        server.debug_gui()
-    else:
-        server.producer()
+    server.start()
     server.mainloop()

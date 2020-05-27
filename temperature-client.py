@@ -74,6 +74,7 @@ class TemperatureDevice:
             self.producer_port = data["publisher_port"]
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
             self.profiles = data["profiles"]
+            self.room_id = data["room_id"]
 
 
     def check_queue(self):
@@ -92,10 +93,11 @@ class TemperatureDevice:
             detected = data["detected"]
             self.detected_id = detected
 
-            for profile in self.profiles:
-                if profile['id'] == detected:
+            for profile_id in self.profiles:
+                if profile_id == detected:
+                    profile = self.profiles[profile_id]
                     print(f"{profile['name']} was detected!")
-                    self.temp_threshold = int(profile["temperature_preference"])
+                    self.temp_threshold = float(profile["temperature_preference"])
 
             print(f"Message on top of queue was {str(data)}")
 
@@ -138,10 +140,12 @@ class TemperatureDevice:
                 
                 temp_message = {
                     "fan_status": self.fan_status,
-                    "temperature": recorded_temp
+                    "temperature": recorded_temp,
+                    "room_id": self.room_id,
+                    "detected_id": self.detected_id
                 }
                 self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
-            time.sleep(3.0)
+            time.sleep(0.5)
 
 
     def measure_temp(self):

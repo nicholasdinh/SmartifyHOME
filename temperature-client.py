@@ -26,7 +26,9 @@ class TemperatureDevice:
 
         self.temp_threshold = None
         self.fan_gpio_pin = 4
+        self.fan_light_gpio_pin = 18
         self.fan = OutputDevice(self.fan_gpio_pin)
+        self.fan_light = OutputDevice(self.fan_light_gpio_pin)
 
         # Base device stuff
         self.read_config_file()
@@ -126,9 +128,11 @@ class TemperatureDevice:
                 if recorded_temp > self.temp_threshold:
                     print("FAN RUNNING")
                     self.fan.on()
+                    self.fan_light.on()
                 else:
                     print("FAN STOPPING")
                     self.fan.off()
+                    self.fan_light.off()
             time.sleep(3.0)
 
 
@@ -136,7 +140,7 @@ class TemperatureDevice:
         temp_str = os.popen("vcgencmd measure_temp").readline()
         temp_str = temp_str.replace("temp=","")
         temp_C = float(temp_str.replace("'C", ""))
-        temp_F = (temp_C*(9/5)) + 32
+        temp_F = (temp_C*(9/5))
         return temp_F
 
     def print_temp(self, x):

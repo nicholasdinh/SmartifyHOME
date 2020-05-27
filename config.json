@@ -39,6 +39,7 @@
             "detected_id": "-1"
         }
     },
+    "room_id": "1",
     "server_receive_topic": "2",
     "subscriber_port": "5560",
     "temperature_pi_topic": "1"

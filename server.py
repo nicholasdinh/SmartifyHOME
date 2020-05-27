@@ -233,7 +233,8 @@ class FogServer(tk.Frame):
             "face_recognition_pi_topic": self.publish_recognition_pi_topic_id,
             "available_id": self.available_id,
             "profiles": self.profiles,
-            "rooms": self.rooms
+            "rooms": self.rooms,
+            "room_id": self.room_id
         }
         with open("./config.json", "w") as config_file:
             json.dump(data_to_dump, config_file, indent=4, sort_keys=True)

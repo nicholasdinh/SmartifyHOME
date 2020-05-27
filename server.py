@@ -45,8 +45,7 @@ class FogServer(tk.Frame):
 
         # The thread that checks receiver_socket for any new messages
         self.receive_thread = threading.Thread(target=self.receiver)
-        # self.updater()
-        self.debug_updater()
+        self.updater()
 
     def create_top_frame(self):
         self.topFrame = tk.Frame(master=self.master)
@@ -240,26 +239,6 @@ class FogServer(tk.Frame):
         }
         with open("./config.json", "w") as config_file:
             json.dump(data_to_dump, config_file, indent=4, sort_keys=True)
-            
-
-    def producer(self):
-        """
-            Main function of this class, this is where data is published to the devices.
-            For example:
-                User preferences are sent to the device maintaining temperature.
-        """
-        self.receive_thread.start()
-        publisher_id = random.randrange(0,9999)
-        time.sleep(1)
-        device_id = "1"
-
-        """
-            This is where we will need to send device specific data.
-        """
-
-        for num in range(20):
-            self.publish_socket.send_string(device_id + " has a message of " + str(num))
-            self.check_for_received()
 
     def receiver(self):
         """
@@ -280,13 +259,18 @@ class FogServer(tk.Frame):
         """
         if self.queue.qsize() > 0:
             data = json.loads(self.queue.get()[2:])
-            room_id = data["room_id"]
-            self.rooms[room_id]["temperature"] = data["temperature"]
-            self.rooms[room_id]["fan_status"] = data["fan_status"]
-            self.rooms[room_id]["detected_id"] = data["detected_id"]
-            self.room_treev.delete(*self.room_treev.get_children())
-            self.update_temperature_tree()
-            self.dump_to_config_file()
+
+            if "is_recognition" in data:
+                detected_id = data["detected_id"]
+                self.send_temperature_client_message(detected_id)
+            else:
+                room_id = data["room_id"]
+                self.rooms[room_id]["temperature"] = data["temperature"]
+                self.rooms[room_id]["fan_status"] = data["fan_status"]
+                self.rooms[room_id]["detected_id"] = data["detected_id"]
+                self.room_treev.delete(*self.room_treev.get_children())
+                self.update_temperature_tree()
+                self.dump_to_config_file()
             # print("New room " + self.rooms[room_id])
         else:
             print("Server's receive queue was empty.")

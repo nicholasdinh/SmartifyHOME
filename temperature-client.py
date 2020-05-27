@@ -7,11 +7,12 @@ import queue
 import json
 import os
 from gpiozero import OutputDevice
+from colors import bcolors
 
 
 import signal
 
-signal.signal(signal.SIGINT, signal.SIG_DFL);
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 class TemperatureDevice:
     
@@ -94,12 +95,16 @@ class TemperatureDevice:
             self.detected_id = detected
 
             for profile_id in self.profiles:
+                #print(profile_id)
+                #print(detected)
                 if profile_id == detected:
                     profile = self.profiles[profile_id]
+                    print()
                     print(f"{profile['name']} was detected!")
                     self.temp_threshold = float(profile["temperature_preference"])
-
-            print(f"Message on top of queue was {str(data)}")
+                    print(f"Setting temperature to {profile['name']}'s preferred setting: "
+                          + str(self.temp_threshold) + "'F")
+            #print(f"Message on top of queue was {str(data)}")
 
 
     def run(self):
@@ -122,18 +127,18 @@ class TemperatureDevice:
             # This only happens before someone is detected in the room.
             if self.temp_threshold != None:
                 recorded_temp = self.measure_temp()
-                self.print_temp(recorded_temp)
+                #self.print_temp(recorded_temp)
                 if recorded_temp > self.temp_threshold:
-                    if self.fan_status == False:
-                        print("TURNING ON FAN...")
-                    print("FAN ON")
+                    #if self.fan_status == False:
+                        #print("TURNING ON FAN...")
+                    #print("FAN ON")
                     self.fan_status = True
                     self.fan.on()
                     self.fan_light.on()
                 else:
-                    if self.fan_status == True:
-                        print("STOPPING FAN...")
-                    print("FAN OFF")
+                    #if self.fan_status == True:
+                        #print("STOPPING FAN...")
+                    #print("FAN OFF")
                     self.fan_status = False
                     self.fan.off()
                     self.fan_light.off()
@@ -145,7 +150,7 @@ class TemperatureDevice:
                     "detected_id": self.detected_id
                 }
                 self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
-            time.sleep(0.5)
+            time.sleep(2.0)
 
 
     def measure_temp(self):
@@ -156,7 +161,12 @@ class TemperatureDevice:
         return temp_F
 
     def print_temp(self, x):
-        print("Temperature: " + str(x) + "'F")
+        #print("Temperature: " + str(x) + "'F")
+        fan_str = 'Fan: ON' if self.fan_status else 'Fan: OFF'
+        sys.stdout.write(
+            '\r >> ' + bcolors.CGREEN + bcolors.BOLD +
+            'Temp: {:.3f}, '.format(x) + fan_str + bcolors.ENDC + ' <<')
+        sys.stdout.flush()
 
     # def receive_updates(self):
     #     # receive data from facerec pi

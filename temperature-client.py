@@ -81,7 +81,9 @@ class TemperatureDevice:
             Check if there is any data received by the fog server waiting to be processed.
         """
 
-        print(f"There are {self.data_queue.qsize()} items in the queue.")
+        #print(f"There are {self.data_queue.qsize()} items in the queue.")
+        recorded_temp = self.measure_temp()
+        self.print_temp(recorded_temp)
         if self.data_queue.qsize() > 0:
             raw_data = self.data_queue.get().decode("utf-8")[2:]
             data = json.loads(raw_data)
@@ -118,14 +120,18 @@ class TemperatureDevice:
             # This only happens before someone is detected in the room.
             if self.temp_threshold != None:
                 recorded_temp = self.measure_temp()
-                self.print_temp(recorded_temp)       
+                self.print_temp(recorded_temp)
                 if recorded_temp > self.temp_threshold:
-                    print("FAN RUNNING")
+                    if self.fan_status == False:
+                        print("TURNING ON FAN...")
+                    print("FAN ON")
                     self.fan_status = True
                     self.fan.on()
                     self.fan_light.on()
                 else:
-                    print("FAN STOPPING")
+                    if self.fan_status == True:
+                        print("STOPPING FAN...")
+                    print("FAN OFF")
                     self.fan_status = False
                     self.fan.off()
                     self.fan_light.off()
@@ -146,7 +152,7 @@ class TemperatureDevice:
         return temp_F
 
     def print_temp(self, x):
-	    print("Temperature: " + str(x) + "'F")
+        print("Temperature: " + str(x) + "'F")
 
     # def receive_updates(self):
     #     # receive data from facerec pi

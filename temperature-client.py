@@ -6,6 +6,7 @@ import threading
 import queue
 import json
 import os
+import RPi.GPIO as GPIO
 from gpiozero import OutputDevice
 from colors import bcolors
 
@@ -28,6 +29,11 @@ class TemperatureDevice:
         self.temp_threshold = None
         self.fan_gpio_pin = 4
         self.fan_light_gpio_pin = 18
+        
+        GPIO.setwarnings(False)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(25, GPIO.IN)
+        
         self.fan = OutputDevice(self.fan_gpio_pin)
         self.fan_light = OutputDevice(self.fan_light_gpio_pin)
 
@@ -35,7 +41,6 @@ class TemperatureDevice:
         self.read_config_file()
         self.data_queue = queue.Queue()
         self.rec_topic_id = "1"
-        self.fan_status = False
 
         self.context = zmq.Context()
         self.receiver = self.context.socket(zmq.SUB)
@@ -127,30 +132,30 @@ class TemperatureDevice:
             # This only happens before someone is detected in the room.
             if self.temp_threshold != None:
                 recorded_temp = self.measure_temp()
-                #self.print_temp(recorded_temp)
+                
                 if recorded_temp > self.temp_threshold:
                     #if self.fan_status == False:
                         #print("TURNING ON FAN...")
                     #print("FAN ON")
-                    self.fan_status = True
                     self.fan.on()
                     self.fan_light.on()
                 else:
                     #if self.fan_status == True:
                         #print("STOPPING FAN...")
                     #print("FAN OFF")
-                    self.fan_status = False
                     self.fan.off()
                     self.fan_light.off()
                 
+                fan_status = "ON" if not GPIO.input(25) else "OFF"
+                
                 temp_message = {
-                    "fan_status": self.fan_status,
+                    "fan_status": fan_status,
                     "temperature": recorded_temp,
                     "room_id": self.room_id,
                     "detected_id": self.detected_id
                 }
                 self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
-            time.sleep(2.0)
+            time.sleep(0.5)
 
 
     def measure_temp(self):
@@ -161,11 +166,10 @@ class TemperatureDevice:
         return temp_F
 
     def print_temp(self, x):
-        #print("Temperature: " + str(x) + "'F")
-        fan_str = 'Fan: ON' if self.fan_status else 'Fan: OFF'
+        fan_str = 'Fan: ON' if not GPIO.input(25) else 'Fan: OFF'
         sys.stdout.write(
             '\r >> ' + bcolors.CGREEN + bcolors.BOLD +
-            'Temp: {:.3f}, '.format(x) + fan_str + bcolors.ENDC + ' <<')
+            'Temp: {:.3f}'.format(x) + "'F, " + fan_str + bcolors.ENDC + ' <<')
         sys.stdout.flush()
 
     # def receive_updates(self):

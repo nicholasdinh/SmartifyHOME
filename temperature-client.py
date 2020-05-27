@@ -96,7 +96,7 @@ class TemperatureDevice:
             for profile in self.profiles:
                 if profile['id'] == detected:
                     print(f"{profile['name']} was detected!")
-                    self.temp_threshold = int(profile["temperature_preference"])
+                    self.temp_threshold = float(profile["temperature_preference"])
 
             print(f"Message on top of queue was {str(data)}")
 
@@ -144,7 +144,7 @@ class TemperatureDevice:
                     "detected_id": self.detected_id
                 }
                 self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
-            time.sleep(3.0)
+            time.sleep(0.5)
 
 
     def measure_temp(self):

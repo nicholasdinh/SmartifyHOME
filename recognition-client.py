@@ -45,18 +45,11 @@ class RecognitionDevice:
 
 
     def consumer(self):
-        data_count = 1
         while True:
             try:
                 [topic,msg] = self.receiver.recv_multipart()
                 work = pickle.loads(msg)
-                # This snippet is only used for debug purposes when testing sending data back to server
-                if data_count % 2 == 0:
-                    message = "message to server from device " + str(data_count)
-                    self.send_message_to_fog(self.producer_topic, message)
-
                 self.data_queue.put(work)
-                data_count += 1
             except zmq.Again:
                 continue
 
@@ -95,7 +88,13 @@ class RecognitionDevice:
             # check for updates from fog
             self.check_queue()
             # send updates to fog
-            time.sleep(3.0)
+            random_id = str(random.randint(5,9))
+            message = {
+                "detected_id": random_id,
+                "is_recognition": True
+            }
+            self.send_message_to_fog(self.publish_to_server_topic_id, json.dumps(message))
+            time.sleep(0.5)
     
 if __name__ == '__main__':
     worker = RecognitionDevice()

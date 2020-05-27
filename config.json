@@ -1,5 +1,5 @@
 {
-    "available_id": 9,
+    "available_id": 10,
     "face_recognition_pi_topic": "3",
     "forwarder_ip": "128.195.79.201",
     "profiles": [
@@ -22,19 +22,24 @@
             "id": "8",
             "name": "michael",
             "temperature_preference": "90"
+        },
+        {
+            "id": "9",
+            "name": "nathaniel",
+            "temperature_preference": "150"
         }
     ],
+    "publisher_port": "5559",
     "rooms": {
         "1": {
+            "fan_status": false,
             "id": "1",
             "name": "Living Room",
-            "temperature": "0",
-            "fan_status": false
+            "temperature": "0", 
+            "detected_id": "-1"
         }
     },
-    "publisher_port": "5559",
     "server_receive_topic": "2",
     "subscriber_port": "5560",
-    "temperature_pi_topic": "1",
-    "room_id": "1"
+    "temperature_pi_topic": "1"
 }

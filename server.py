@@ -88,9 +88,10 @@ class FogServer(tk.Frame):
         self.treev.bind("<Double-1>", self.on_tree_view_double_click)
         self.treev.grid(row=1, column=0, sticky="nsew")
 
-        self.room_treev = ttk.Treeview(self.master, columns= ("id", "Name", "Temperature", "Fan"), show="headings", selectmode="browse")
+        self.room_treev = ttk.Treeview(self.master, columns= ("id", "Name", "Temperature", "Fan", "Detected"), show="headings", selectmode="browse")
         self.room_treev.heading("id", text="Room ID")
         self.room_treev.heading("Name", text="Room Name")
+        self.room_treev.heading("Detected", text="Detected User")
         self.room_treev.heading("Temperature", text="Temperature")
         self.room_treev.heading("Fan", text="Fan Status")
         self.room_treev.grid(row=2, column=0, sticky="nsew")
@@ -121,9 +122,19 @@ class FogServer(tk.Frame):
     def update_tree_on_load(self):
         for profile in self.profiles:
             self.treev.insert('','end', text=profile['name'], values=(profile['id'], profile['name'], profile['temperature_preference']))
+        self.update_temperature_tree()
+
+    def find_detected_name(self, id):
+        for profile in profiles:
+            if profile["id"] == id:
+                return profile["name"]
+        return "Unknown"
+
+    def update_temperature_tree(self):
         for room_id in self.rooms:
             room = self.rooms[room_id]
-            self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status']))
+            detected_name = self.find_detected_name(room["detected_id"])
+            self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status'], detected_name))
 
     def edit_user_window(self, id, name, preference):
         window = tk.Toplevel(self.master)
@@ -256,7 +267,7 @@ class FogServer(tk.Frame):
                 print("Trying to receive!")
                 data = self.receiver_socket.recv()
                 print(data.decode("utf-8"))
-                self.queue.put(data)
+                self.queue.put(data.decode("utf-8"))
             except zmq.Again:
                 continue
 
@@ -265,10 +276,14 @@ class FogServer(tk.Frame):
             Check if there is any data received by the devices waiting to be processed.
         """
         if self.queue.qsize() > 0:
-            data = self.queue.get()
+            data = json.loads(self.queue.get()[2:])
+            print(data)
             room_id = data["room_id"]
             self.rooms[room_id]["temperature"] = data["temperature"]
             self.rooms[room_id]["fan_status"] = data["fan_status"]
+            self.room_treev.delete(*self.room_treev.get_children())
+            self.update_temperature_tree()
+            # print("New room " + self.rooms[room_id])
         else:
             print("Server's receive queue was empty.")
 
@@ -307,6 +322,7 @@ class FogServer(tk.Frame):
         """
         self.receive_thread.start()
         while True:
+            self.check_for_received()
             detected = input("Who was detected? ")
             if detected.lower() == 'q':
                 break

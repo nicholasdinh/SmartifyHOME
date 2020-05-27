@@ -140,7 +140,8 @@ class TemperatureDevice:
                 temp_message = {
                     "fan_status": self.fan_status,
                     "temperature": recorded_temp,
-                    "room_id": self.room_id
+                    "room_id": self.room_id,
+                    "detected_id": self.detected_id
                 }
                 self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
             time.sleep(3.0)

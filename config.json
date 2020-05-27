@@ -1,14 +1,12 @@
 {
     "available_id": 9,
-    "temperature_pi_topic": "1",
-    "server_receive_topic": "2",
     "face_recognition_pi_topic": "3",
-    "forwarder_ip": "128.195.78.124",
+    "forwarder_ip": "128.195.79.201",
     "profiles": [
         {
             "id": "5",
             "name": "neftali",
-            "temperature_preference": "200"
+            "temperature_preference": "82"
         },
         {
             "id": "6",
@@ -18,14 +16,24 @@
         {
             "id": "7",
             "name": "damian",
-            "temperature_preference": "80"
+            "temperature_preference": "69"
         },
         {
             "id": "8",
             "name": "michael",
-            "temperature_preference": "300"
+            "temperature_preference": "90"
         }
     ],
+    "rooms": {
+        "1": {
+            "id": "1",
+            "name": "Living Room",
+            "temperature": "0",
+            "fan_status": false
+        }
+    },
     "publisher_port": "5559",
-    "subscriber_port": "5560"
+    "server_receive_topic": "2",
+    "subscriber_port": "5560",
+    "temperature_pi_topic": "1"
 }

@@ -93,8 +93,9 @@ class TemperatureDevice:
             detected = data["detected"]
             self.detected_id = detected
 
-            for profile in self.profiles:
-                if profile['id'] == detected:
+            for profile_id in self.profiles:
+                if profile_id == detected:
+                    profile = self.profiles[profile_id]
                     print(f"{profile['name']} was detected!")
                     self.temp_threshold = float(profile["temperature_preference"])
 

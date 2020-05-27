@@ -70,6 +70,7 @@ class RecognitionDevice:
         if self.data_queue.qsize() > 0:
             # Do something with data we received
             encodings = self.data_queue.get()
+            self.profiles = encodings["profiles"]
             print(f"Message on top of queue was {str(encodings)}")
     
     def run(self):

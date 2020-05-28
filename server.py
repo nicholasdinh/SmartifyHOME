@@ -268,14 +268,17 @@ class FogServer(tk.Frame):
                 print(data)
                 room_id = data["room_id"]
                 detected_profile = data["detected_profile"]
-                self.rooms[room_id]["temperature"] = data["temperature"]
                 self.rooms[room_id]["fan_status"] = data["fan_status"]
-                self.rooms[room_id]["detected_id"] = detected_profile["id"]
-                self.rooms[room_id]["detected_name"] = detected_profile["name"]
+                self.rooms[room_id]["temperature"] = data["temperature"]
+                if detected_profile != None and detected_profile != "Unknown":
+                    self.rooms[room_id]["detected_id"] = detected_profile["id"]
+                    self.rooms[room_id]["detected_name"] = detected_profile["name"]
+                else:
+                    self.rooms[room_id]["detected_id"] = None
+                    self.rooms[room_id]["detected_name"] = "Unknown"
                 self.room_treev.delete(*self.room_treev.get_children())
                 self.update_temperature_tree()
                 self.dump_to_config_file()
-            # print("New room " + self.rooms[room_id])
         else:
             print("Server's receive queue was empty.")
 
@@ -299,13 +302,13 @@ class FogServer(tk.Frame):
 
     def updater(self):
         self.check_for_received()
-        self.after(500, self.updater)
+        self.after(250, self.updater)
 
     def debug_updater(self):
         self.check_for_received()
         random_id = random.randint(5,9)
         self.send_temperature_client_message(str(random_id))
-        self.after(500, self.debug_updater)
+        self.after(250, self.debug_updater)
 
     def start(self):
         self.receive_thread.start()

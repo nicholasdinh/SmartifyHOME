@@ -8,6 +8,8 @@ import queue
 import json
 import os
 
+from server_encode_faces import encode_faces
+
 import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -89,10 +91,10 @@ class RecognitionDevice:
             # check for updates from fog
             self.check_queue()
             # send updates to fog
-            random_id = str(random.randint(5,9))
+            # random_id = str(random.randint(5,9))
+            names = ["Damian", "Nick"]
             message = {
-                "detected_id": random_id,
-                "is_recognition": True
+                "names": names
             }
             self.send_message_to_fog(self.publish_to_server_topic_id, json.dumps(message))
             time.sleep(0.5)

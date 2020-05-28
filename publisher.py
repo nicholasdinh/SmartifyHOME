@@ -7,6 +7,7 @@ import pickle
 import queue
 import json
 import os
+import topics from topics
 
 import signal
 
@@ -19,7 +20,7 @@ Questions
 
 
 class Publisher:
-    def __init__(self, *args):
+    def __init__(self, topic):
         self.read_config_file()
         self.zContext = zmq.Context()
         self.producer = self.zContext.socket(zmq.PUB)
@@ -34,7 +35,6 @@ class Publisher:
             self.topics = data["topics"]
             self.producer_port = data["publisher_port"]
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
-            self.publish_to_server_topic_id = data["server_receive_topic"]
 
     def publish(self, topic: str, message: str):
         """

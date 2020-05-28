@@ -7,6 +7,7 @@ import pickle
 import queue
 import json
 import os
+from topics import topics
 
 import signal
 
@@ -22,14 +23,14 @@ Questions
 
 
 class Subscriber:
-    def __init__(self, *args):
+    def __init__(self, topic):
         print("Initialized!")
         self.read_config_file()
         self.data_queue = queue.Queue()
         self.zContext = zmq.Context()
-        self.receiver = self.context.socket(zmq.SUB)
+        self.receiver = self.zContext.socket(zmq.SUB)
         self.receiver.connect(self.ip + self.receiver_port)
-        self.receiver.setsockopt_string(zmq.SUBSCRIBE, self.receive_topic_id)
+        self.receiver.setsockopt_string(zmq.SUBSCRIBE, topic)
 
     def read_config_file(self):
         """
@@ -41,11 +42,18 @@ class Subscriber:
             self.producer_port = data["publisher_port"]
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
 
-    def receive(self, handle):
-        print("")
+    def recv_multipart(self, handle):
         try:
             [topic, msg] = self.receiver.recv_multipart()
             work = handle(msg)
+            self.data_queue.put(work)
+            print("Message received")
+        except zmq.Again:
+            pass
+
+    def recv(self):
+        try:
+            work = self.receiver.recv()
             self.data_queue.put(work)
         except zmq.Again:
             pass

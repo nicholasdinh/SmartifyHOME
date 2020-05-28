@@ -11,8 +11,6 @@ import tkinter.messagebox as tkMBox
 import tkinter as tk
 import zmq
 
-from server_encode_faces import encode_faces
-
 import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL);

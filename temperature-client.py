@@ -101,6 +101,7 @@ class TemperatureDevice:
         if self.data_queue.qsize() > 0:
             raw_data = self.data_queue.get().decode("utf-8")[5:]
             data = json.loads(raw_data)
+            #print(data)
 
             self.profiles = data["profiles"]
             names = data["names"]
@@ -111,17 +112,18 @@ class TemperatureDevice:
                     self.detected_profile = self.map_name_to_profile(primary_name)
                     print()
                     print(f"Primary user {self.detected_profile['name']} was detected!")
-                    self.temp_threshold = float(self.detected_profile["temperature_preference"])
+                    self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 1
                     print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: "
                           + str(self.temp_threshold) + "'F")
             else:
                 if self.detected_profile != self.map_name_to_profile(names[0]):
                     self.detected_profile = self.map_name_to_profile(names[0])
-                    print()
-                    print(f"{self.detected_profile['name']} was detected!")
-                    self.temp_threshold = float(self.detected_profile["temperature_preference"])
-                    print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: "
-                          + str(self.temp_threshold) + "'F")
+                    if self.detected_profile != 'Unknown':
+                        print()
+                        print(f"{self.detected_profile['name']} was detected!")
+                        self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 1
+                        print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: "
+                            + str(self.temp_threshold) + "'F")
             
             
 
@@ -142,10 +144,9 @@ class TemperatureDevice:
             # check for updates from fog
             self.check_queue()
             # send updates to fog
-
+            recorded_temp = self.measure_temp()
             # This only happens before someone is detected in the room.
             if self.temp_threshold != None:
-                recorded_temp = self.measure_temp()
                 
                 if recorded_temp > self.temp_threshold:
                     #if self.fan_status == False:
@@ -159,17 +160,17 @@ class TemperatureDevice:
                     #print("FAN OFF")
                     self.fan.off()
                     self.fan_light.off()
-                
-                fan_status = "ON" if not GPIO.input(25) else "OFF"
-                
-                temp_message = {
-                    "fan_status": fan_status,
-                    "temperature": recorded_temp,
-                    "room_id": self.room_id,
-                    "detected_profile": self.detected_profile
-                }
-                self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
-            time.sleep(0.5)
+            
+            fan_status = "ON" if not GPIO.input(25) else "OFF"
+
+            temp_message = {
+                "fan_status": fan_status,
+                "temperature": recorded_temp,
+                "room_id": self.room_id,
+                "detected_profile": self.detected_profile
+            }
+            self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
+            time.sleep(1)
 
 
     def measure_temp(self):

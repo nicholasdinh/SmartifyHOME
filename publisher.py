@@ -7,7 +7,7 @@ import pickle
 import queue
 import json
 import os
-import topics from topics
+from topics import tset
 
 import signal
 
@@ -32,7 +32,6 @@ class Publisher:
         """
         with open("./config.json") as config_file:
             data = json.load(config_file)
-            self.topics = data["topics"]
             self.producer_port = data["publisher_port"]
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
 

@@ -1,5 +1,5 @@
-topics = frozenset(
-    "IDENTITY",
-    "TEMP",
-    "SERVER"
-)
+tset = {
+    "IDENTITY": "IDENTITY",
+    "TEMP": "TEMP",
+    "SERVER": "SERVER"
+}

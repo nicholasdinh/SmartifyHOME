@@ -7,7 +7,7 @@ import pickle
 import queue
 import json
 import os
-from topics import topics
+from topics import tset
 
 import signal
 

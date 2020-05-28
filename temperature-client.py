@@ -20,7 +20,7 @@ class TemperatureDevice:
     def __init__(self):
         # Temperature stuff
         self.profiles = dict()
-        self.detected_id = None
+        self.detected_profile = None
 
         # For future use
         self.room_id = None
@@ -81,7 +81,14 @@ class TemperatureDevice:
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
             self.profiles = data["profiles"]
             self.room_id = data["room_id"]
+            self.rooms = data["rooms"]
 
+    def map_name_to_profile(self, name):
+        for profile_id in self.profiles:
+            profile = self.profiles[profile_id]
+            if profile["name"] == name:
+                return profile
+        return "Unknown"
 
     def check_queue(self):
         """
@@ -96,20 +103,13 @@ class TemperatureDevice:
             data = json.loads(raw_data)
 
             self.profiles = data["profiles"]
-            detected = data["detected"]
-            self.detected_id = detected
-
-            for profile_id in self.profiles:
-                #print(profile_id)
-                #print(detected)
-                if profile_id == detected:
-                    profile = self.profiles[profile_id]
-                    print()
-                    print(f"{profile['name']} was detected!")
-                    self.temp_threshold = float(profile["temperature_preference"])
-                    print(f"Setting temperature to {profile['name']}'s preferred setting: "
-                          + str(self.temp_threshold) + "'F")
-            #print(f"Message on top of queue was {str(data)}")
+            names = data["names"]
+            primary_name = self.rooms[self.room_id]["primary_user"]
+            if primary_name in names:
+                self.detected_profile = self.map_name_to_profile(primary_name)
+            else:
+                self.detected_profile = self.map_name_to_profile[names[0]]
+            self.temp_threshold = float(self.detected_profile["temperature_preference"])
 
 
     def run(self):
@@ -152,7 +152,7 @@ class TemperatureDevice:
                     "fan_status": fan_status,
                     "temperature": recorded_temp,
                     "room_id": self.room_id,
-                    "detected_id": self.detected_id
+                    "detected_profile": self.detected_profile
                 }
                 self.send_message_to_fog(self.producer_topic, json.dumps(temp_message))
             time.sleep(0.5)

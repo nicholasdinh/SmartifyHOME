@@ -18,12 +18,12 @@
     },
     "6": {
       "id": "6",
-      "name": "ryan",
+      "name": "Ryan",
       "temperature_preference": "75.6"
     },
     "7": {
       "id": "7",
-      "name": "damian",
+      "name": "Damian",
       "temperature_preference": "69.69"
     },
     "8": {
@@ -41,7 +41,7 @@
   "room_id": "1",
   "rooms": {
     "1": {
-      "detected_id": "6",
+      "primary_user": "Damian",
       "fan_status": true,
       "id": "1",
       "name": "Living Room",

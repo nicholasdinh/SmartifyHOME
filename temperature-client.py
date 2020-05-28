@@ -108,7 +108,7 @@ class TemperatureDevice:
             if primary_name in names:
                 self.detected_profile = self.map_name_to_profile(primary_name)
             else:
-                self.detected_profile = self.map_name_to_profile[names[0]]
+                self.detected_profile = self.map_name_to_profile(names[0])
             self.temp_threshold = float(self.detected_profile["temperature_preference"])
 
 

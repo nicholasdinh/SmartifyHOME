@@ -260,7 +260,10 @@ class FogServer(tk.Frame):
             data = json.loads(raw_data)
             if "names" in data:
                 detected_names = data["names"]
-                self.send_temperature_client_message(detected_names)
+                if "Unknown" in detected_names:
+                    detected_names.remove("Unknown")
+                if len(detected_names) > 0:
+                    self.send_temperature_client_message(detected_names)
             else:
                 print(data)
                 room_id = data["room_id"]

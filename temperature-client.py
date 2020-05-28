@@ -85,8 +85,7 @@ class TemperatureDevice:
             self.rooms = data["rooms"]
 
     def map_name_to_profile(self, name):
-        for profile_id in self.profiles:
-            profile = self.profiles[profile_id]
+        for profile in self.profiles:
             if profile["name"] == name:
                 return profile
         return "Unknown"
@@ -100,7 +99,7 @@ class TemperatureDevice:
         recorded_temp = self.measure_temp()
         self.print_temp(recorded_temp)
         if self.data_queue.qsize() > 0:
-            raw_data = self.data_queue.get().decode("utf-8")[2:]
+            raw_data = self.data_queue.get().decode("utf-8")[5:]
             data = json.loads(raw_data)
 
             self.profiles = data["profiles"]

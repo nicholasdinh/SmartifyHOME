@@ -127,8 +127,7 @@ class FogServer(tk.Frame):
         self.edit_user_window(clicked_id, clicked_name, clicked_preference)
 
     def update_tree_on_load(self):
-        for profile_id in self.profiles:
-            profile = self.profiles[profile_id]
+        for profile in self.profiles:
             self.treev.insert('','end', text=profile['name'], values=(profile['id'], profile['name'], profile['temperature_preference']))
         self.update_temperature_tree()
 
@@ -257,7 +256,8 @@ class FogServer(tk.Frame):
             Check if there is any data received by the devices waiting to be processed.
         """
         if self.queue.qsize() > 0:
-            data = json.loads(self.queue.get()[2:])
+            raw_data = self.queue.get()[7:]
+            data = json.loads(raw_data)
             if "names" in data:
                 detected_names = data["names"]
                 self.send_temperature_client_message(detected_names)

@@ -1,33 +1,33 @@
 {
   "available_id": 10,
-  "forwarder_ip": "128.195.66.220",
+  "forwarder_ip": "128.195.68.230",
   "room_id": "1",
   "publisher_port": "5559",
   "subscriber_port": "5560",
   "profiles": [
     {
       "id": "5",
-      "name": "neftali",
+      "name": "Neftali",
       "temperature_preference": "82"
     },
     {
       "id": "6",
-      "name": "ryan",
+      "name": "Ryan",
       "temperature_preference": "75"
     },
     {
       "id": "7",
-      "name": "damian",
+      "name": "Damian",
       "temperature_preference": "69"
     },
     {
       "id": "8",
-      "name": "michael",
+      "name": "Michael",
       "temperature_preference": "90"
     },
     {
       "id": "9",
-      "name": "nathaniel",
+      "name": "Nathaniel",
       "temperature_preference": "150"
     }
   ],
@@ -37,7 +37,9 @@
       "id": "1",
       "name": "Living Room",
       "temperature": "0",
-      "detected_id": "-1"
+      "detected_id": "-1",
+      "detected_name": "Unknown",
+      "primary_user": "Damian"
     }
   }
 }

@@ -92,7 +92,7 @@ class RecognitionDevice:
             self.check_queue()
             # send updates to fog
             # random_id = str(random.randint(5,9))
-            names = ["Damian", "Nick"]
+            names = ["Nick", "Ryan"]
             message = {
                 "names": names
             }

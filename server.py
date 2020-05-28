@@ -11,6 +11,8 @@ import tkinter.messagebox as tkMBox
 import tkinter as tk
 import zmq
 
+from server_encode_faces import encode_faces
+
 import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL);
@@ -47,6 +49,8 @@ class FogServer(tk.Frame):
         self.receive_thread = threading.Thread(target=self.receiver)
         self.updater()
 
+        self.detected_profile = None
+
     def create_top_frame(self):
         self.topFrame = tk.Frame(master=self.master)
         self.topFrame.grid(row=0, sticky="nsew", padx=5, pady=5)
@@ -55,7 +59,7 @@ class FogServer(tk.Frame):
         self.profileLabel.grid(row=0, column=0, sticky="nsew")
 
 
-        self.entryFrame = tk.LabelFrame(master=self.topFrame, text="Update User")
+        self.entryFrame = tk.LabelFrame(master=self.topFrame, text="Server Options")
         self.entryFrame.grid(row=0, column=2, sticky="nsew")
 
         self.nameEntry = tk.Entry(self.entryFrame)
@@ -66,8 +70,11 @@ class FogServer(tk.Frame):
         self.tempEntry.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
 
 
-        self.addUserButton = tk.Button(master=self.entryFrame, text="Update User", command=self.addUserOnClick)
+        self.addUserButton = tk.Button(master=self.entryFrame, text="Add User", command=self.addUserOnClick)
         self.addUserButton.grid(row=2, column=0, sticky="nsew", columnspan=2, padx=5, pady=5)
+
+        self.sendEncodingsButton = tk.Button(master=self.entryFrame, text="Send Encodings", command=self.send_recognition_message)
+        self.sendEncodingsButton.grid(row=3, column=0,sticky="nsew", columnspan=2, padx=5, pady=5)
 
         self.entryFrame.grid_rowconfigure(0,weight=1)
         self.entryFrame.grid_rowconfigure(1,weight=1)
@@ -128,8 +135,7 @@ class FogServer(tk.Frame):
     def update_temperature_tree(self):
         for room_id in self.rooms:
             room = self.rooms[room_id]
-            detected_name = self.profiles[room["detected_id"]]["name"]
-            self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status'], detected_name))
+            self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status'], room['detected_name']))
 
     def edit_user_window(self, id, name, preference):
         window = tk.Toplevel(self.master)
@@ -254,15 +260,17 @@ class FogServer(tk.Frame):
         """
         if self.queue.qsize() > 0:
             data = json.loads(self.queue.get()[2:])
-
-            if "is_recognition" in data:
-                detected_id = data["detected_id"]
-                self.send_temperature_client_message(detected_id)
+            if "names" in data:
+                detected_names = data["names"]
+                self.send_temperature_client_message(detected_names)
             else:
+                print(data)
                 room_id = data["room_id"]
+                detected_profile = data["detected_profile"]
                 self.rooms[room_id]["temperature"] = data["temperature"]
                 self.rooms[room_id]["fan_status"] = data["fan_status"]
-                self.rooms[room_id]["detected_id"] = data["detected_id"]
+                self.rooms[room_id]["detected_id"] = detected_profile["id"]
+                self.rooms[room_id]["detected_name"] = detected_profile["name"]
                 self.room_treev.delete(*self.room_treev.get_children())
                 self.update_temperature_tree()
                 self.dump_to_config_file()
@@ -272,7 +280,7 @@ class FogServer(tk.Frame):
 
     def send_temperature_client_message(self, detected):
         temperature_message = {
-            'detected': detected,
+            'names': detected,
             'profiles': self.profiles
         }
         serialized_message = self.publish_temp_pi_topic_id + " " + json.dumps(temperature_message)

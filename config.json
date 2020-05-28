@@ -1,51 +1,48 @@
 {
-  "available_id": 10,
-  "topics": {
-    "IDENTITY": "IDENTITY",
-    "TEMP": "TEMP",
-    "SERVER": "SERVER"
-  },
-  "face_recognition_pi_topic": "3",
-  "server_receive_topic": "2",
-  "temperature_pi_topic": "1",
-  "subscriber_port": "5560",
-  "forwarder_ip": "128.195.68.230",
-  "profiles": {
-    "5": {
-      "id": "5",
-      "name": "neftali",
-      "temperature_preference": "82.3"
+    "available_id": 10,
+    "face_recognition_pi_topic": "3",
+    "forwarder_ip": "128.195.68.230",
+    "profiles": {
+        "5": {
+            "id": "5",
+            "name": "Neftali",
+            "temperature_preference": "82.3"
+        },
+        "6": {
+            "id": "6",
+            "name": "Ryan",
+            "temperature_preference": "75.6"
+        },
+        "7": {
+            "id": "7",
+            "name": "Damian",
+            "temperature_preference": "69.69"
+        },
+        "8": {
+            "id": "8",
+            "name": "Michael",
+            "temperature_preference": "90"
+        },
+        "9": {
+            "id": "9",
+            "name": "Nick",
+            "temperature_preference": "100.0"
+        }
     },
-    "6": {
-      "id": "6",
-      "name": "Ryan",
-      "temperature_preference": "75.6"
+    "publisher_port": "5559",
+    "room_id": "1",
+    "rooms": {
+        "1": {
+            "detected_id": "9",
+            "detected_name": "Nick",
+            "fan_status": "ON",
+            "id": "1",
+            "name": "Living Room",
+            "primary_user": "Damian",
+            "temperature": 108.18
+        }
     },
-    "7": {
-      "id": "7",
-      "name": "Damian",
-      "temperature_preference": "69.69"
-    },
-    "8": {
-      "id": "8",
-      "name": "michael",
-      "temperature_preference": "90"
-    },
-    "9": {
-      "id": "9",
-      "name": "nick",
-      "temperature_preference": "100.0"
-    }
-  },
-  "publisher_port": "5559",
-  "room_id": "1",
-  "rooms": {
-    "1": {
-      "primary_user": "Damian",
-      "fan_status": true,
-      "id": "1",
-      "name": "Living Room",
-      "temperature": 106.38000000000001
-    }
-  }
+    "server_receive_topic": "2",
+    "subscriber_port": "5560",
+    "temperature_pi_topic": "1"
 }

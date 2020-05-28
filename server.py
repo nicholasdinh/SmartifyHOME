@@ -9,7 +9,9 @@ from tkinter import ttk
 import tkinter.font as tkFont
 import tkinter.messagebox as tkMBox
 import tkinter as tk
+from topics import tset
 import zmq
+
 
 import signal
 
@@ -209,6 +211,10 @@ class FogServer(tk.Frame):
             Load in values from config file for the ip address of the forwarder and the port numbers.
         """
 
+        self.rec_topic_id = tset["SERVER"]
+        self.publish_temp_pi_topic_id = tset["TEMP"]
+        self.publish_recognition_pi_topic_id = tset["IDENTITY"]
+
         with open("./config.json") as config_file:
             data = json.load(config_file)
             self.receiver_port = data["subscriber_port"]
@@ -216,9 +222,6 @@ class FogServer(tk.Frame):
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
             self.available_id = data["available_id"]
             self.profiles = data["profiles"]
-            self.rec_topic_id = data["server_receive_topic"]
-            self.publish_temp_pi_topic_id = data["temperature_pi_topic"]
-            self.publish_recognition_pi_topic_id = data["face_recognition_pi_topic"]
             self.rooms = data["rooms"]
             self.room_id = data["room_id"]
         self.update_tree_on_load()
@@ -228,9 +231,6 @@ class FogServer(tk.Frame):
             "subscriber_port": self.receiver_port,
             "publisher_port": self.publish_port,
             "forwarder_ip": self.ip[6:-1],
-            "server_receive_topic": self.rec_topic_id,
-            "temperature_pi_topic": self.publish_temp_pi_topic_id,
-            "face_recognition_pi_topic": self.publish_recognition_pi_topic_id,
             "available_id": self.available_id,
             "profiles": self.profiles,
             "rooms": self.rooms,

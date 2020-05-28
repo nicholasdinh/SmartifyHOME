@@ -10,6 +10,7 @@ import RPi.GPIO as GPIO
 from gpiozero import OutputDevice
 from colors import bcolors
 
+from topics import tset
 
 import signal
 
@@ -40,14 +41,14 @@ class TemperatureDevice:
         # Base device stuff
         self.read_config_file()
         self.data_queue = queue.Queue()
-        self.rec_topic_id = "1"
+        self.rec_topic_id = tset["TEMP"]
 
         self.context = zmq.Context()
         self.receiver = self.context.socket(zmq.SUB)
         self.receiver.connect(self.ip + self.receiver_port)
         self.receiver.setsockopt_string(zmq.SUBSCRIBE, self.rec_topic_id)
 
-        self.producer_topic = "2"
+        self.producer_topic = tset["SERVER"]
         self.producer = self.context.socket(zmq.PUB)
         self.producer.connect(self.ip + self.producer_port)
 
@@ -108,7 +109,7 @@ class TemperatureDevice:
             if primary_name in names:
                 self.detected_profile = self.map_name_to_profile(primary_name)
             else:
-                self.detected_profile = self.map_name_to_profile(names[0])
+                self.detected_profile = self.map_name_to_profile[names[0]]
             self.temp_threshold = float(self.detected_profile["temperature_preference"])
 
 

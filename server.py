@@ -12,6 +12,8 @@ import tkinter as tk
 from topics import tset
 import zmq
 
+from server_gui import EditUserWindow
+from server_gui import ServerOptionsFrame
 
 import signal
 
@@ -54,38 +56,26 @@ class FogServer(tk.Frame):
     def create_top_frame(self):
         self.topFrame = tk.Frame(master=self.master)
         self.topFrame.grid(row=0, sticky="nsew", padx=5, pady=5)
-
         self.profileLabel = tk.Label(master=self.topFrame, text="Profiles")
         self.profileLabel.grid(row=0, column=0, sticky="nsew")
+        self.create_options_frame()
+        self.configure_top_frame()
 
+    def create_options_frame(self):
+        add_user_command = lambda new_name, new_temp : self.addUserOnClick(new_name, new_temp)
+        send_encodings_command = lambda : self.send_recognition_message
+        commands = {
+            "add_user": add_user_command,
+            "send_encodings": send_encodings_command
+        }
+        self.options_frame = ServerOptionsFrame(self.topFrame, commands)
 
-        self.entryFrame = tk.LabelFrame(master=self.topFrame, text="Server Options")
-        self.entryFrame.grid(row=0, column=2, sticky="nsew")
-
-        self.nameEntry = tk.Entry(self.entryFrame)
-        self.tempEntry = tk.Entry(self.entryFrame)
-        tk.Label(self.entryFrame, text="Profile Name").grid(row=0, padx=5, pady=5)
-        tk.Label(self.entryFrame, text="Temp Preference").grid(row=1, padx=5, pady=5)
-        self.nameEntry.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
-        self.tempEntry.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
-
-
-        self.addUserButton = tk.Button(master=self.entryFrame, text="Add User", command=self.addUserOnClick)
-        self.addUserButton.grid(row=2, column=0, sticky="nsew", columnspan=2, padx=5, pady=5)
-
-        self.sendEncodingsButton = tk.Button(master=self.entryFrame, text="Send Encodings", command=self.send_recognition_message)
-        self.sendEncodingsButton.grid(row=3, column=0,sticky="nsew", columnspan=2, padx=5, pady=5)
-
-        self.entryFrame.grid_rowconfigure(0,weight=1)
-        self.entryFrame.grid_rowconfigure(1,weight=1)
-        self.entryFrame.grid_rowconfigure(2,weight=1)
-        self.entryFrame.grid_columnconfigure(0,weight=1)
-        self.entryFrame.grid_columnconfigure(1,weight=1)
-
+    def configure_top_frame(self):
         self.topFrame.grid_rowconfigure(0,weight=1)
         self.topFrame.grid_columnconfigure(0,weight=1)
         self.topFrame.grid_columnconfigure(1,weight=1)
         self.topFrame.grid_columnconfigure(2,weight=1)
+
 
     def create_tree_view(self):
         self.treev = ttk.Treeview(self.master, columns = ("id", "Name", "Preference"), show="headings", selectmode="browse")
@@ -103,28 +93,27 @@ class FogServer(tk.Frame):
         self.room_treev.heading("Fan", text="Fan Status")
         self.room_treev.grid(row=2, column=0, sticky="nsew")
 
-    def addUserOnClick(self):
-        username = self.nameEntry.get()
-        temp = self.tempEntry.get()
-        print(username + " " + temp)
-
-        self.tempEntry.delete(0,'end')
-        self.nameEntry.delete(0,'end')
-
+    def addUserOnClick(self, profile_name, profile_temp):
         new_profile = dict()
-        new_profile['name'] = username
-        new_profile['temperature_preference'] = temp
+        new_profile['name'] = profile_name
+        new_profile['temperature_preference'] = profile_temp
         new_profile['id'] = str(self.available_id)
         self.available_id +=1
-        self.profiles[str(self.available_id)] = new_profile
-        self.treev.insert('', 'end', text=username, values=(new_profile['id'],username,temp))
+        self.profiles.append(new_profile)
+        self.treev.insert('', 'end', text=profile_name, values=(new_profile['id'],profile_name,profile_temp))
         self.dump_to_config_file()
 
 
     def on_tree_view_double_click(self, event):
         item = self.treev.selection()[0]
-        clicked_id, clicked_name, clicked_preference = self.treev.item(item, "values")
-        self.edit_user_window(clicked_id, clicked_name, clicked_preference)
+        _, clicked_name, _ = self.treev.item(item, "values")
+        commands = {
+            "confirm_edit": lambda name, new_pref, window: self.update_user(name, new_pref, window),
+            "delete_user": lambda name, window: self.delete_user(name, window),
+            "cancel": lambda window: self.close_edit_window(window)
+        }
+        edit_window = EditUserWindow(clicked_name, commands)
+        # self.edit_user_window(clicked_id, clicked_name)
 
     def update_tree_on_load(self):
         for profile in self.profiles:
@@ -136,59 +125,18 @@ class FogServer(tk.Frame):
             room = self.rooms[room_id]
             self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status'], room['detected_name']))
 
-    def edit_user_window(self, id, name, preference):
-        window = tk.Toplevel(self.master)
-
-        # Frame of entire window
-        edit_user_frame = tk.Frame(master = window)
-        edit_user_frame.grid(row=0, sticky="nsew")
-        edit_user_frame.grid_rowconfigure(0, weight=1)
-        edit_user_frame.grid_rowconfigure(1, weight=1)
-        edit_user_frame.grid_rowconfigure(2, weight=1)
-        edit_user_frame.grid_columnconfigure(0, weight=1)
-
-        # First row, label in window
-        tk.Label(edit_user_frame, text="Editing " + name).grid(row=0, padx=5, pady=5, sticky="nsew")
-        
-        
-        # Second row, labelframe of edit options
-        edit_label_frame = tk.LabelFrame(master=edit_user_frame, text="Edit Options")
-        edit_label_frame.grid(row=1, padx=5, pady=5, sticky="nsew")
-        edit_label_frame.grid_rowconfigure(0,weight=1)
-        edit_label_frame.grid_rowconfigure(1,weight=1)
-        edit_label_frame.grid_rowconfigure(2,weight=1)
-        edit_label_frame.grid_columnconfigure(0, weight=1)
-        edit_label_frame.grid_columnconfigure(1, weight=1)
-        edit_label_frame.grid_columnconfigure(2, weight=1)
-
-        tk.Label(edit_label_frame, text="New temperature preference").grid(row=1, column=0, padx=5, sticky="nsew")
-        new_preference_entry = tk.Entry(master=edit_label_frame)
-        new_preference_entry.grid(row=1, column=1, padx=5, pady=5, sticky="nsew")
-
-        confirm_edit_button = tk.Button(edit_label_frame, text="Enter", command=lambda: self.update_user(id, new_preference_entry.get(), window))
-        confirm_edit_button.grid(row=1, column=2, padx=5, pady=5, sticky="nsew")
-
-        delete_user_button = tk.Button(edit_label_frame, text="Delete User", command=lambda: self.delete_user(id, window))
-        delete_user_button.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
-
-        # Third row, cancel button
-        cancel_button = tk.Button(edit_user_frame, text="Cancel", command=lambda: self.close_edit_window(window))
-        cancel_button.grid(row=2, padx=5, pady=5, sticky="nsew")
-
-        window.grid_rowconfigure(0, weight=1)
-        window.grid_columnconfigure(0, weight=1)
-
-    def update_user(self, user_id, new_preference, toplevel):
+    def update_user(self, name, new_preference, toplevel):
         for profile in self.profiles:
-            if profile["id"] == user_id:
+            if profile["name"] == name:
                 profile["temperature_preference"] = new_preference
     
         self.reset_tree_and_close_window(toplevel)
 
-    def delete_user(self, user_id, toplevel):
-        for profile_id in self.profiles:
-            if profile_id == user_id:
-                self.profiles.pop(profile_id)
+    def delete_user(self, name, toplevel):
+
+        for i, profile in enumerate(self.profiles):
+            if profile["name"] == name:
+                self.profiles.pop(i)
         self.reset_tree_and_close_window(toplevel)
 
     def close_edit_window(self, toplevel):
@@ -244,9 +192,7 @@ class FogServer(tk.Frame):
         """
         while True:
             try:
-                # print("Trying to receive!")
                 data = self.receiver_socket.recv()
-                # print(data.decode("utf-8"))
                 self.queue.put(data.decode("utf-8"))
             except zmq.Again:
                 continue
@@ -259,13 +205,14 @@ class FogServer(tk.Frame):
             raw_data = self.queue.get()[7:]
             data = json.loads(raw_data)
             if "names" in data:
+                print("Received data from recognition client: " + raw_data)
                 detected_names = data["names"]
                 if "Unknown" in detected_names:
                     detected_names.remove("Unknown")
                 if len(detected_names) > 0:
                     self.send_temperature_client_message(detected_names)
             else:
-                print(data)
+                print("Received data from temperature client: " + raw_data)
                 room_id = data["room_id"]
                 detected_profile = data["detected_profile"]
                 self.rooms[room_id]["fan_status"] = data["fan_status"]
@@ -279,8 +226,6 @@ class FogServer(tk.Frame):
                 self.room_treev.delete(*self.room_treev.get_children())
                 self.update_temperature_tree()
                 self.dump_to_config_file()
-        else:
-            print("Server's receive queue was empty.")
 
     def send_temperature_client_message(self, detected):
         temperature_message = {
@@ -297,7 +242,6 @@ class FogServer(tk.Frame):
         self.publish_socket.send_multipart(multipart_message)
 
     def check_for_received(self):
-            print("Checking for any received messages...")
             self.check_queue()
 
     def updater(self):

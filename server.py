@@ -1,8 +1,11 @@
 import json
+import multiprocessing
+from pathlib import Path
 import pickle
 import queue
 import random
 import sys
+import shutil
 import threading
 import time
 from tkinter import ttk
@@ -12,6 +15,7 @@ import tkinter as tk
 from topics import tset
 import zmq
 
+from server_encode_faces import encode_and_write_to_file
 from server_gui import EditUserWindow
 from server_gui import ServerOptionsFrame
 
@@ -49,6 +53,13 @@ class FogServer(tk.Frame):
 
         # The thread that checks receiver_socket for any new messages
         self.receive_thread = threading.Thread(target=self.receiver)
+
+        encodings_path = Path("./encodings.pickle")
+        if encodings_path.exists():
+            self.encodings_mtime = encodings_path.stat().st_mtime
+        else:
+            self.encodings_mtime = -1
+
         self.updater()
 
         self.detected_profile = None
@@ -63,10 +74,8 @@ class FogServer(tk.Frame):
 
     def create_options_frame(self):
         add_user_command = lambda new_name, new_temp : self.addUserOnClick(new_name, new_temp)
-        send_encodings_command = lambda : self.send_recognition_message
         commands = {
             "add_user": add_user_command,
-            "send_encodings": send_encodings_command
         }
         self.options_frame = ServerOptionsFrame(self.topFrame, commands)
 
@@ -133,10 +142,17 @@ class FogServer(tk.Frame):
         self.reset_tree_and_close_window(toplevel)
 
     def delete_user(self, name, toplevel):
-
-        for i, profile in enumerate(self.profiles):
-            if profile["name"] == name:
-                self.profiles.pop(i)
+        try:
+            for i, profile in enumerate(self.profiles):
+                if profile["name"] == name:
+                    self.profiles.pop(i)
+                    shutil.rmtree("./dataset/" + name)
+                    encodings_process = multiprocessing.Process(target=do_encodings)
+                    encodings_process.start()
+                    print("Deleted users files!!")
+        except FileNotFoundError:
+            pass
+        
         self.reset_tree_and_close_window(toplevel)
 
     def close_edit_window(self, toplevel):
@@ -241,11 +257,22 @@ class FogServer(tk.Frame):
         multipart_message = [str.encode(self.publish_recognition_pi_topic_id), pickle.dumps(encodings)]
         self.publish_socket.send_multipart(multipart_message)
 
-    def check_for_received(self):
-            self.check_queue()
+    def check_encodings_file(self):
+        encodings_path = Path("./encodings.pickle")
+
+        if encodings_path.exists():
+            current_mtime = encodings_path.stat().st_mtime
+            if self.encodings_mtime == -1 or (self.encodings_mtime != current_mtime):
+                self.encodings_mtime = current_mtime
+                self.send_recognition_message()
+                print("Updating encodings file!!")
 
     def updater(self):
-        self.check_for_received()
+        try:
+            self.check_encodings_file()
+        except FileNotFoundError:
+            pass
+        self.check_queue()
         self.after(250, self.updater)
 
     def debug_updater(self):
@@ -256,8 +283,14 @@ class FogServer(tk.Frame):
 
     def start(self):
         self.receive_thread.start()
-        self.send_recognition_message()
+        try:
+            self.send_recognition_message()
+        except FileNotFoundError:
+            pass
         
+
+def do_encodings():
+    encode_and_write_to_file("./dataset")
 
 if __name__ == '__main__':
     root = tk.Tk()

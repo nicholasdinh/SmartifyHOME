@@ -9,6 +9,7 @@ import json
 import os
 
 from server_encode_faces import encode_faces
+from topics import tset
 
 import signal
 
@@ -24,6 +25,8 @@ class RecognitionDevice:
         self.read_config_file()
         self.data_queue = queue.Queue()
         self.context = zmq.Context()
+        self.receive_topic_id = tset["IDENTITY"]
+        self.publish_to_server_topic_id = tset["SERVER"]
         self.receiver = self.context.socket(zmq.SUB)
         self.receiver.connect(self.ip + self.receiver_port)
         self.receiver.setsockopt_string(zmq.SUBSCRIBE, self.receive_topic_id)
@@ -42,9 +45,6 @@ class RecognitionDevice:
             self.receiver_port = data["subscriber_port"]
             self.producer_port = data["publisher_port"]
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
-            self.receive_topic_id = data["face_recognition_pi_topic"]
-            self.publish_to_server_topic_id = data["server_receive_topic"]
-
 
     def consumer(self):
         while True:
@@ -92,12 +92,12 @@ class RecognitionDevice:
             self.check_queue()
             # send updates to fog
             # random_id = str(random.randint(5,9))
-            names = ["Nick", "Ryan"]
+            names = ["Unknown"]
             message = {
                 "names": names
             }
             self.send_message_to_fog(self.publish_to_server_topic_id, json.dumps(message))
-            time.sleep(0.5)
+            time.sleep(1.0)
     
 if __name__ == '__main__':
     worker = RecognitionDevice()

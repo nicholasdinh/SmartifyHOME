@@ -186,31 +186,6 @@ class TemperatureDevice:
             'Temp: {:.3f}'.format(x) + "'F, " + fan_str + bcolors.ENDC + ' <<')
         sys.stdout.flush()
 
-    # def receive_updates(self):
-    #     # receive data from facerec pi
-    #     # data: updated_profiles(dict) , updated_primary(str), updated_detected(set)
-
-    #     profiles = updated_profiles
-    #     primary_profile = updated_primary
-
-    #     if detected_people != updated_detected:
-    #         detected_people = updated_detected
-    #         if !detected_people:
-    #             temp_threshold = 100
-    #         else:
-    #             if len(detected_people) > 1:
-    #                 if primary_profile in detected_people:
-    #                     temp_threshold = float(profiles[primary_profile])
-    #                 else:
-    #                     temp_threshold = float(profiles[updated_detected.pop()])
-    #             else:
-    #                 temp_threshold = float(profiles[updated_detected.pop()])
-    
-    def send_updates(self):
-        # send updated data to fog
-        # data: detected_people
-        pass
-
 if __name__ == '__main__':
     worker = TemperatureDevice()
     worker.run()

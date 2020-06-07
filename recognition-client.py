@@ -8,8 +8,6 @@ import queue
 import json
 import os
 
-from server_encode_faces import encode_faces
-
 import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)

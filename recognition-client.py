@@ -8,9 +8,7 @@ import queue
 import json
 import os
 
-from server_encode_faces import encode_faces
 from topics import tset
-
 import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)

@@ -84,12 +84,6 @@ class TemperatureDevice:
             self.room_id = data["room_id"]
             self.rooms = data["rooms"]
 
-    def map_name_to_profile(self, name):
-        for profile in self.profiles:
-            if profile["name"] == name:
-                return profile
-        return "Unknown"
-
     def check_queue(self):
         """
             Check if there is any data received by the fog server waiting to be processed.
@@ -101,32 +95,33 @@ class TemperatureDevice:
         if self.data_queue.qsize() > 0:
             raw_data = self.data_queue.get().decode("utf-8")[5:]
             data = json.loads(raw_data)
-            #print(data)
+            # print(data)
 
             self.profiles = data["profiles"]
             names = data["names"]
+            # If no names detected, this frame was used only to update the profiles. Need to update detected_profile
+            if names == []:
+                if self.detected_profile != None:
+                    detected_name = self.detected_profile["name"]
+                    self.detected_profile = self.profiles[detected_name]
+                return
             primary_name = self.rooms[self.room_id]["primary_user"]
-            
             if primary_name in names:
-                if self.detected_profile != self.map_name_to_profile(primary_name):
-                    self.detected_profile = self.map_name_to_profile(primary_name)
-                    print()
-                    print(f"Primary user {self.detected_profile['name']} was detected!")
+                primary_profile = self.profiles[primary_name]
+                if self.detected_profile["name"] != primary_name:
+                    self.detected_profile = self.profiles[primary_name]
                     self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 1
-                    print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: "
-                          + str(self.temp_threshold) + "'F")
+                    print(f"\nPrimary user {self.detected_profile['name']} was detected!")
+                    print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: " + str(self.temp_threshold) + "'F")
             else:
-                if self.detected_profile != self.map_name_to_profile(names[0]):
-                    self.detected_profile = self.map_name_to_profile(names[0])
-                    if self.detected_profile != 'Unknown':
-                        print()
-                        print(f"{self.detected_profile['name']} was detected!")
-                        self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 1
-                        print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: "
-                            + str(self.temp_threshold) + "'F")
-            
-            
-
+                # If detected name is not unknown
+                if names[0] in [key.lower() for key in self.profiles]:
+                    first_profile_detected = self.profiles[names[0]]
+                    if self.detected_profile == None:
+                        self.detected_profile = first_profile_detected
+                    elif self.detected_profile["name"] != first_profile_detected["name"]:
+                        self.detected_profile = first_profile_detected
+                    self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 1
 
     def run(self):
         self.receiver_thread.start()
@@ -151,13 +146,11 @@ class TemperatureDevice:
                 if recorded_temp > self.temp_threshold:
                     #if self.fan_status == False:
                         #print("TURNING ON FAN...")
-                    #print("FAN ON")
                     self.fan.on()
                     self.fan_light.on()
                 else:
                     #if self.fan_status == True:
                         #print("STOPPING FAN...")
-                    #print("FAN OFF")
                     self.fan.off()
                     self.fan_light.off()
             

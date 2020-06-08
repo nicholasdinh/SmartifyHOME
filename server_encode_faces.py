@@ -23,9 +23,11 @@ def encode_faces(imageFolder):
     data = {"encodings": knownEncodings, "names": knownNames}
     return data
 
-
-if __name__ == "__main__":
-    encodings = encode_faces("./dataset")
+def encode_and_write_to_file(imageFolder):
+    encodings = encode_faces(imageFolder)
     f = open("encodings.pickle", "wb")
     f.write(pickle.dumps(encodings))
     f.close()
+
+if __name__ == "__main__":
+    encode_and_write_to_file("./dataset")

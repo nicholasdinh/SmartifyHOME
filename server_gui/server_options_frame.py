@@ -12,6 +12,7 @@ class ServerOptionsFrame(tk.LabelFrame):
         super().__init__(master, text="Server Options")
 
         self.add_user_command = commands["add_user"]
+        self.send_encodings_command = commands["send_encodings"]
 
         self.grid(row=0, column=2, sticky="nsew")
 
@@ -31,11 +32,11 @@ class ServerOptionsFrame(tk.LabelFrame):
 
     def add_buttons(self):
         self.addUserButton = tk.Button(master=self, text="Add User", command=self.addUserOnClick)
-        # self.sendEncodingsButton = tk.Button(master=self, text="Add ", command=self.send_encodings_command)
+        self.sendEncodingsButton = tk.Button(master=self, text="Send Encodings", command=self.send_encodings_command)
 
     def configure_buttons(self):
         self.addUserButton.grid(row=2, column=0, sticky="nsew", columnspan=2, padx=5, pady=5)
-        # self.sendEncodingsButton.grid(row=3, column=0,sticky="nsew", columnspan=2, padx=5, pady=5)
+        self.sendEncodingsButton.grid(row=3, column=0,sticky="nsew", columnspan=2, padx=5, pady=5)
 
     def configure_frame(self):
         self.grid_rowconfigure(0,weight=1)
@@ -49,23 +50,25 @@ class ServerOptionsFrame(tk.LabelFrame):
         temp = self.tempEntry.get()
         name = self.nameEntry.get()
 
-        self.get_faces_and_encode(name, temp)
-        self.tempEntry.delete(0,'end')
-        self.nameEntry.delete(0,'end')
+        if len(temp) > 0 and len(name) > 0:
+            self.get_faces_and_encode(name, temp)
+            self.tempEntry.delete(0,'end')
+            self.nameEntry.delete(0,'end')
 
 
     def get_faces_and_encode(self, name, temp):
         files = filedialog.askopenfilenames(initialdir="./", title="Please select all images.")
-        base_dir = "./dataset/" + name + "/"
-        raw_face_dir = Path(base_dir)
-        raw_face_dir.mkdir(parents=True)
-        for i, imageFile in enumerate(files):
-            src_file = Path(imageFile)
-            new_file = Path(base_dir + "face-" + str(i) + src_file.suffix)
-            shutil.copy2(src_file, new_file)
-        encodings_process = multiprocessing.Process(target=do_encodings)
-        encodings_process.start()
-        self.add_user_command(name, temp)
+        if len(files) > 0:
+            base_dir = "./dataset/" + name + "/"
+            raw_face_dir = Path(base_dir)
+            raw_face_dir.mkdir(parents=True)
+            for i, imageFile in enumerate(files):
+                src_file = Path(imageFile)
+                new_file = Path(base_dir + "face-" + str(i) + src_file.suffix)
+                shutil.copy2(src_file, new_file)
+            encodings_process = multiprocessing.Process(target=do_encodings)
+            encodings_process.start()
+            self.add_user_command(name, temp)
 
 def do_encodings():
     encode_and_write_to_file("./dataset")

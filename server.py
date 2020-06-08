@@ -74,8 +74,10 @@ class FogServer(tk.Frame):
 
     def create_options_frame(self):
         add_user_command = lambda new_name, new_temp : self.addUserOnClick(new_name, new_temp)
+        send_encodings_command = lambda : self.send_recognition_message()
         commands = {
             "add_user": add_user_command,
+            "send_encodings": send_encodings_command
         }
         self.options_frame = ServerOptionsFrame(self.topFrame, commands)
 
@@ -87,8 +89,7 @@ class FogServer(tk.Frame):
 
 
     def create_tree_view(self):
-        self.treev = ttk.Treeview(self.master, columns = ("id", "Name", "Preference"), show="headings", selectmode="browse")
-        self.treev.heading("id", text="User ID")
+        self.treev = ttk.Treeview(self.master, columns = ("Name", "Preference"), show="headings", selectmode="browse")
         self.treev.heading("Name", text="Name")
         self.treev.heading("Preference", text="Preference")
         self.treev.bind("<Double-1>", self.on_tree_view_double_click)
@@ -106,27 +107,24 @@ class FogServer(tk.Frame):
         new_profile = dict()
         new_profile['name'] = profile_name
         new_profile['temperature_preference'] = profile_temp
-        new_profile['id'] = str(self.available_id)
-        self.available_id +=1
-        self.profiles.append(new_profile)
-        self.treev.insert('', 'end', text=profile_name, values=(new_profile['id'],profile_name,profile_temp))
+        self.profiles[profile_name.lower()] = new_profile
+        self.treev.insert('', 'end', text=profile_name, values=(profile_name,profile_temp))
         self.dump_to_config_file()
 
 
     def on_tree_view_double_click(self, event):
         item = self.treev.selection()[0]
-        _, clicked_name, _ = self.treev.item(item, "values")
+        clicked_name, _ = self.treev.item(item, "values")
         commands = {
             "confirm_edit": lambda name, new_pref, window: self.update_user(name, new_pref, window),
             "delete_user": lambda name, window: self.delete_user(name, window),
             "cancel": lambda window: self.close_edit_window(window)
         }
         edit_window = EditUserWindow(clicked_name, commands)
-        # self.edit_user_window(clicked_id, clicked_name)
 
     def update_tree_on_load(self):
-        for profile in self.profiles:
-            self.treev.insert('','end', text=profile['name'], values=(profile['id'], profile['name'], profile['temperature_preference']))
+        for profile in self.profiles.values():
+            self.treev.insert('','end', text=profile['name'], values=(profile['name'], profile['temperature_preference']))
         self.update_temperature_tree()
 
     def update_temperature_tree(self):
@@ -135,21 +133,16 @@ class FogServer(tk.Frame):
             self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status'], room['detected_name']))
 
     def update_user(self, name, new_preference, toplevel):
-        for profile in self.profiles:
-            if profile["name"] == name:
-                profile["temperature_preference"] = new_preference
-    
+        self.profiles[name]["temperature_preference"] = new_preference
         self.reset_tree_and_close_window(toplevel)
 
     def delete_user(self, name, toplevel):
         try:
-            for i, profile in enumerate(self.profiles):
-                if profile["name"] == name:
-                    self.profiles.pop(i)
-                    shutil.rmtree("./dataset/" + name)
-                    encodings_process = multiprocessing.Process(target=do_encodings)
-                    encodings_process.start()
-                    print("Deleted users files!!")
+            self.profiles.pop(name)
+            shutil.rmtree("./dataset/" + name)
+            encodings_process = multiprocessing.Process(target=do_encodings)
+            encodings_process.start()
+            print("Deleted users files!!")
         except FileNotFoundError:
             pass
         
@@ -163,7 +156,7 @@ class FogServer(tk.Frame):
         self.dump_to_config_file()
 
         # send message to all temperature pi's with new profiles
-        self.send_temperature_client_message(-1)
+        self.send_temperature_client_message([])
         self.treev.delete(*self.treev.get_children())
         self.room_treev.delete(*self.room_treev.get_children())
         self.update_tree_on_load()
@@ -183,7 +176,6 @@ class FogServer(tk.Frame):
             self.receiver_port = data["subscriber_port"]
             self.publish_port = data["publisher_port"]
             self.ip = "tcp://" + data["forwarder_ip"] + ":"
-            self.available_id = data["available_id"]
             self.profiles = data["profiles"]
             self.rooms = data["rooms"]
             self.room_id = data["room_id"]
@@ -194,7 +186,6 @@ class FogServer(tk.Frame):
             "subscriber_port": self.receiver_port,
             "publisher_port": self.publish_port,
             "forwarder_ip": self.ip[6:-1],
-            "available_id": self.available_id,
             "profiles": self.profiles,
             "rooms": self.rooms,
             "room_id": self.room_id
@@ -222,9 +213,9 @@ class FogServer(tk.Frame):
             data = json.loads(raw_data)
             if "names" in data:
                 print("Received data from recognition client: " + raw_data)
-                detected_names = data["names"]
-                if "Unknown" in detected_names:
-                    detected_names.remove("Unknown")
+                detected_names = [name.lower() for name in data["names"]]
+                # if "Unknown" in detected_names:
+                #     detected_names.remove("Unknown")
                 if len(detected_names) > 0:
                     self.send_temperature_client_message(detected_names)
             else:
@@ -234,10 +225,8 @@ class FogServer(tk.Frame):
                 self.rooms[room_id]["fan_status"] = data["fan_status"]
                 self.rooms[room_id]["temperature"] = data["temperature"]
                 if detected_profile != None and detected_profile != "Unknown":
-                    self.rooms[room_id]["detected_id"] = detected_profile["id"]
                     self.rooms[room_id]["detected_name"] = detected_profile["name"]
                 else:
-                    self.rooms[room_id]["detected_id"] = None
                     self.rooms[room_id]["detected_name"] = "Unknown"
                 self.room_treev.delete(*self.room_treev.get_children())
                 self.update_temperature_tree()
@@ -252,6 +241,7 @@ class FogServer(tk.Frame):
         self.publish_socket.send_string(serialized_message)
 
     def send_recognition_message(self):
+        print("Sending encodings!")
         encodings = pickle.load(open("encodings.pickle","rb"))
         encodings["profiles"] = self.profiles
         multipart_message = [str.encode(self.publish_recognition_pi_topic_id), pickle.dumps(encodings)]

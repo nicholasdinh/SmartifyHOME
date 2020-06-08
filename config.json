@@ -1,45 +1,39 @@
 {
-  "available_id": 10,
-  "forwarder_ip": "128.195.68.230",
-  "room_id": "1",
-  "publisher_port": "5559",
-  "subscriber_port": "5560",
-  "profiles": [
-    {
-      "id": "5",
-      "name": "Neftali",
-      "temperature_preference": "82"
+    "forwarder_ip": "128.195.71.110",
+    "profiles": {
+        "damian": {
+            "name": "Damian",
+            "temperature_preference": "69"
+        },
+        "michael": {
+            "name": "Michael",
+            "temperature_preference": "90"
+        },
+        "nathaniel": {
+            "name": "Nathaniel",
+            "temperature_preference": "150"
+        },
+        "neftali": {
+            "name": "Neftali",
+            "temperature_preference": "82"
+        },
+        "ryan": {
+            "name": "ryan",
+            "temperature_preference": "100"
+        }
     },
-    {
-      "id": "6",
-      "name": "Ryan",
-      "temperature_preference": "75"
+    "publisher_port": "5559",
+    "room_id": "1",
+    "rooms": {
+        "1": {
+            "detected_id": "6",
+            "detected_name": "unknown",
+            "fan_status": "ON",
+            "id": "1",
+            "name": "Living Room",
+            "primary_user": "Damian",
+            "temperature": 102.42
+        }
     },
-    {
-      "id": "7",
-      "name": "Damian",
-      "temperature_preference": "69"
-    },
-    {
-      "id": "8",
-      "name": "Michael",
-      "temperature_preference": "90"
-    },
-    {
-      "id": "9",
-      "name": "Nathaniel",
-      "temperature_preference": "150"
-    }
-  ],
-  "rooms": {
-    "1": {
-      "fan_status": false,
-      "id": "1",
-      "name": "Living Room",
-      "temperature": "0",
-      "detected_id": "-1",
-      "detected_name": "Unknown",
-      "primary_user": "Damian"
-    }
-  }
+    "subscriber_port": "5560"
 }

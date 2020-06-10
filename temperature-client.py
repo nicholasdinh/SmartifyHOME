@@ -106,7 +106,7 @@ class TemperatureDevice:
                     self.detected_profile = self.profiles[detected_name]
                     self.temp_threshold = float(self.detected_profile["temperature_preference"])
                 return
-            primary_name = self.rooms[self.room_id]["primary_user"]
+            primary_name = self.rooms[self.room_id]["primary_user"].lower()
             if primary_name in names:
                 primary_profile = self.profiles[primary_name]
                 if self.detected_profile["name"] != primary_name:

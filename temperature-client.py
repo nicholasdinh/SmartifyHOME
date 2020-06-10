@@ -104,13 +104,14 @@ class TemperatureDevice:
                 if self.detected_profile != None:
                     detected_name = self.detected_profile["name"]
                     self.detected_profile = self.profiles[detected_name]
+                    self.temp_threshold = float(self.detected_profile["temperature_preference"])
                 return
             primary_name = self.rooms[self.room_id]["primary_user"]
             if primary_name in names:
                 primary_profile = self.profiles[primary_name]
                 if self.detected_profile["name"] != primary_name:
                     self.detected_profile = self.profiles[primary_name]
-                    self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 1
+                    self.temp_threshold = float(self.detected_profile["temperature_preference"])
                     print(f"\nPrimary user {self.detected_profile['name']} was detected!")
                     print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: " + str(self.temp_threshold) + "'F")
             else:
@@ -121,7 +122,9 @@ class TemperatureDevice:
                         self.detected_profile = first_profile_detected
                     elif self.detected_profile["name"] != first_profile_detected["name"]:
                         self.detected_profile = first_profile_detected
-                    self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 1
+                    self.temp_threshold = float(self.detected_profile["temperature_preference"])
+                    print(f"\n{self.detected_profile['name']} was detected!")
+                    print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: " + str(self.temp_threshold) + "'F")
 
     def run(self):
         self.receiver_thread.start()

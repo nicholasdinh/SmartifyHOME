@@ -138,7 +138,7 @@ class FogServer(tk.Frame):
 
     def delete_user(self, name, toplevel):
         try:
-            self.profiles.pop(name)
+            self.profiles.pop(name.lower())
             shutil.rmtree("./dataset/" + name)
             encodings_process = multiprocessing.Process(target=do_encodings)
             encodings_process.start()

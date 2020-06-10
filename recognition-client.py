@@ -90,7 +90,8 @@ class RecognitionDevice:
             self.check_queue()
             # send updates to fog
             # random_id = str(random.randint(5,9))
-            names = ["Unknown"]
+            name = input("Enter a name: ")
+            names = [name]
             message = {
                 "names": names
             }

@@ -133,7 +133,7 @@ class FogServer(tk.Frame):
             self.room_treev.insert('','end', values=(room['id'], room['name'], room['temperature'], room['fan_status'], room['detected_name']))
 
     def update_user(self, name, new_preference, toplevel):
-        self.profiles[name]["temperature_preference"] = new_preference
+        self.profiles[name.lower()]["temperature_preference"] = new_preference
         self.reset_tree_and_close_window(toplevel)
 
     def delete_user(self, name, toplevel):

@@ -22,6 +22,7 @@ class TemperatureDevice:
         # Temperature stuff
         self.profiles = dict()
         self.detected_profile = None
+        self.last_detected = None
 
         # For future use
         self.room_id = None
@@ -103,17 +104,24 @@ class TemperatureDevice:
             if names == []:
                 if self.detected_profile != None:
                     detected_name = self.detected_profile["name"]
-                    self.detected_profile = self.profiles[detected_name]
-                    self.temp_threshold = float(self.detected_profile["temperature_preference"])
+                    if detected_name in self.profiles:
+                        self.detected_profile = self.profiles[detected_name]
+                        self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 2
+                    else:
+                        self.detected_profile = None
+                        self.temp_threshold = None
                 return
             primary_name = self.rooms[self.room_id]["primary_user"].lower()
             if primary_name in names:
                 primary_profile = self.profiles[primary_name]
-                if self.detected_profile["name"] != primary_name:
+                if (self.detected_profile == None) or (self.detected_profile["name"] != primary_name):
                     self.detected_profile = self.profiles[primary_name]
-                    self.temp_threshold = float(self.detected_profile["temperature_preference"])
-                    print(f"\nPrimary user {self.detected_profile['name']} was detected!")
-                    print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: " + str(self.temp_threshold) + "'F")
+                    if (self.detected_profile != self.last_detected):
+                        self.last_detected = self.profiles[primary_name]
+                        self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 2
+                        print(f"\nPrimary user {self.detected_profile['name']} was detected!")
+                        #print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: " + str(self.temp_threshold) + "'F")
+                        print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: {self.detected_profile['temperature_preference']}'F")
             else:
                 # If detected name is not unknown
                 if names[0] in [key.lower() for key in self.profiles]:
@@ -122,9 +130,12 @@ class TemperatureDevice:
                         self.detected_profile = first_profile_detected
                     elif self.detected_profile["name"] != first_profile_detected["name"]:
                         self.detected_profile = first_profile_detected
-                    self.temp_threshold = float(self.detected_profile["temperature_preference"])
-                    print(f"\n{self.detected_profile['name']} was detected!")
-                    print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: " + str(self.temp_threshold) + "'F")
+                    if (self.detected_profile != self.last_detected):
+                        self.last_detected = self.detected_profile
+                        self.temp_threshold = float(self.detected_profile["temperature_preference"]) - 2
+                        print(f"\n{self.detected_profile['name']} was detected!")
+                        #print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: " + str(self.temp_threshold) + "'F")
+                        print(f"Setting temperature to {self.detected_profile['name']}'s preferred setting: {self.detected_profile['temperature_preference']}'F")
 
     def run(self):
         self.receiver_thread.start()
@@ -173,7 +184,7 @@ class TemperatureDevice:
         temp_str = os.popen("vcgencmd measure_temp").readline()
         temp_str = temp_str.replace("temp=","")
         temp_C = float(temp_str.replace("'C", ""))
-        temp_F = (temp_C*(9/5))
+        temp_F = (temp_C*(9/5))     # +32 not included to simulate realistic room temperature from CPU readings
         return temp_F
 
     def print_temp(self, x):
